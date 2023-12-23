@@ -17,7 +17,7 @@ public partial class CameraRenderer
 
     static ShaderTagId unlitShaderTagId = new ShaderTagId("SRPDefaultUnlit");
 
-    public void Render(ScriptableRenderContext context, Camera camera)
+    public void Render(ScriptableRenderContext context, Camera camera, bool useDynamicBatching, bool useGPUInstancing)
     {
         this.context = context;
         this.camera = camera;
@@ -30,7 +30,7 @@ public partial class CameraRenderer
         }
 
         Setup();
-        DrawVisibleGeometry();
+        DrawVisibleGeometry(useDynamicBatching, useGPUInstancing);
         DrawUnsupportedShaders();
         DrawGizmos();//Gizmos:for example light icon.
         Submit();//The context delays the actual rendering until we submit it.
@@ -58,10 +58,15 @@ public partial class CameraRenderer
         buffer.Clear();
     }
 
-    void DrawVisibleGeometry()
+    void DrawVisibleGeometry(bool useDynamicBatching,bool useGPUInstancing)
     {
         var sortingSettings = new SortingSettings(camera){criteria = SortingCriteria.CommonOpaque};
-        var drawingSettings = new DrawingSettings(unlitShaderTagId,sortingSettings);//indicate which kind of shader passes are allowed
+        //indicate which kind of shader passes are allowed
+        var drawingSettings = new DrawingSettings(unlitShaderTagId,sortingSettings)
+        {
+			enableDynamicBatching = useDynamicBatching,
+			enableInstancing = useGPUInstancing
+		};
         var filteringSettings = new FilteringSettings(RenderQueueRange.opaque);// indicate which render queues are allowed.
 
         context.DrawRenderers(cullingResults, ref drawingSettings, ref filteringSettings);

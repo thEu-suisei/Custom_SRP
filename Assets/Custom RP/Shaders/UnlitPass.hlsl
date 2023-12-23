@@ -19,6 +19,7 @@ UNITY_INSTANCING_BUFFER_END(UnityPerMaterial)
 struct Attributes
 {
     float3 positionOS : POSITION;
+    //定义GPU Instancing使用的每个实例的ID，告诉GPU当前绘制的是哪个Object
     UNITY_VERTEX_INPUT_INSTANCE_ID
 };
 
@@ -35,17 +36,21 @@ struct Varyings
 Varyings UnlitPassVertex(Attributes input)
 {
     Varyings output;
+    //从input中提取实例的ID并将其存储在其他实例化宏所依赖的全局静态变量中
     UNITY_SETUP_INSTANCE_ID(input);
+    //将实例ID传递给output
     UNITY_TRANSFER_INSTANCE_ID(input,output);
     float3 positionWS = TransformObjectToWorld(input.positionOS.xyz);
-    output.positionCS = TransformWorldToObject(positionWS);
+    output.positionCS = TransformWorldToHClip(positionWS);
     return output;
 }
 
 //片元着色器
 //语义SV_TARGET这个像素的颜色值
 float4 UnlitPassFragment (Varyings input) : SV_TARGET {
+    //从input中提取实例的ID并将其存储在其他实例化宏所依赖的全局静态变量中
     UNITY_SETUP_INSTANCE_ID(input);
+    //通过UNITY_ACCESS_INSTANCED_PROP获取每实例数据
 	return UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial,_BaseColor);
 }
 
