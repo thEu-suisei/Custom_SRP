@@ -45,6 +45,9 @@ Shader "Custom RP/Unlit"
             //HLSLPROGRAM & ENDHLSL :it's possible put other non-HLSL code inside the Pass block
             HLSLPROGRAM
             //pragma:在许多编程语言中用于发出特殊的编译器指令。
+            //不生成OpenGL ES 2.0等图形API的着色器变体，其不支持可变次数的循环与线性颜色空间
+            #pragma target 3.5
+            
             //这一指令会让Unity生成两个该Shader的变体，一个支持GPU Instancing，另一个不支持。
             #pragma multi_compile_instancing
             //告诉Unity启用_CLIPPING关键字时编译不同版本的Shader

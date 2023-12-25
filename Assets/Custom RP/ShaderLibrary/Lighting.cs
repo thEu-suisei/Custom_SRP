@@ -55,7 +55,7 @@ public class Lighting
         {
             VisibleLight visibleLight = visibleLights[i];
 
-            //只配置方向光源
+            //这一步只设置Directional Light
             if (visibleLight.lightType == LightType.Directional)
             {
                 //设置数组中单个光源的属性
