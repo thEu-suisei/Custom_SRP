@@ -12,6 +12,18 @@ Shader "Custom RP/Unlit"
     Properties
     {
         _BaseColor("Color",Color) = (1.0,1.0,1.0,1.0)
+<<<<<<< HEAD
+=======
+        
+        //混合模式使用的值，其值应该是枚举值，但是这里使用float
+        //特性用于在Editor下更方便编辑
+        [Enum(UnityEngine.Rendering.BlendMode)]_SrcBlend("Src Blend",Float) = 1
+        [Enum(UnityEngine.Rendering.BlendMode)]_DstBlend("Dst Blend",Float) = 0
+        
+        //深度写入模式
+        [Enum(Off,0,On,1)] _ZWrite("Z Write",Float) = 1
+        
+>>>>>>> parent of 6397d3e (Draw Calls Finished)
     }
 
     //着色器程序
@@ -21,6 +33,14 @@ Shader "Custom RP/Unlit"
         //Pass是Shader对象的基本元素，它包含设置GPU状态的指令，以及在GPU上运行的着色器程序。
         Pass
         {
+<<<<<<< HEAD
+=======
+            
+            //设置混合模式
+            //Opaque物体的混合模式为Src=One、Dst=Zero，即新颜色会完全覆盖旧颜色，
+            //而Transparent物体的混合模式为Src=SrcAlhpa、Dst=OneMinusSrcAlpha
+            Blend [_SrcBlend] [_DstBlend]
+>>>>>>> parent of 6397d3e (Draw Calls Finished)
 
             //HLSLPROGRAM & ENDHLSL :it's possible put other non-HLSL code inside the Pass block
             HLSLPROGRAM
