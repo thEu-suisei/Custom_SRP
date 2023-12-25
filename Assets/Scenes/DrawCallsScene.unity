@@ -3815,7 +3815,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 33675e1439ff88c48a3b5df59ac2aee7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  baseColor: {r: 0.53333336, g: 0.7647059, b: 1, a: 0.5882353}
+  baseColor: {r: 0.53333336, g: 0.7647059, b: 1, a: 0.5803922}
   cutoff: 0.5
 --- !u!1 &1366006067
 GameObject:

@@ -12,6 +12,8 @@ public class CustomRenderPipeline : RenderPipeline
         this.useDynamicBatching = useDynamicBatching;
         this.useGPUInstancing = useGPUInstancing;
         GraphicsSettings.useScriptableRenderPipelineBatching = useSRPBatcher;
+        //默认情况下Unity不会将其转换为线性空间,需要设置为true
+        GraphicsSettings.lightsUseLinearIntensity = true;
     }
 
     private CameraRenderer renderer = new CameraRenderer();

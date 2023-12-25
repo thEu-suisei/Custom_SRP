@@ -35,7 +35,7 @@ public class MeshBall : MonoBehaviour
             baseColors[i] = new Vector4(
                 Random.value,
                 Random.value,
-                Random.value, Random.Range(0.5f,1f));
+                Random.value, Random.Range(0.1f,1f));
         }
     }
 
