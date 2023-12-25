@@ -20,7 +20,10 @@ struct Attributes
 {
     float3 positionOS : POSITION;
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> parent of 6397d3e (Draw Calls Finished)
     //定义GPU Instancing使用的每个实例的ID，告诉GPU当前绘制的是哪个Object
 >>>>>>> parent of 6397d3e (Draw Calls Finished)
     UNITY_VERTEX_INPUT_INSTANCE_ID
@@ -49,6 +52,9 @@ Varyings UnlitPassVertex(Attributes input)
     UNITY_TRANSFER_INSTANCE_ID(input,output);
     float3 positionWS = TransformObjectToWorld(input.positionOS.xyz);
     output.positionCS = TransformWorldToHClip(positionWS);
+<<<<<<< HEAD
+>>>>>>> parent of 6397d3e (Draw Calls Finished)
+=======
 >>>>>>> parent of 6397d3e (Draw Calls Finished)
     return output;
 }
@@ -57,7 +63,13 @@ Varyings UnlitPassVertex(Attributes input)
 //语义SV_TARGET这个像素的颜色值
 float4 UnlitPassFragment (Varyings input) : SV_TARGET {
 <<<<<<< HEAD
+<<<<<<< HEAD
     UNITY_SETUP_INSTANCE_ID(input);
+=======
+    //从input中提取实例的ID并将其存储在其他实例化宏所依赖的全局静态变量中
+    UNITY_SETUP_INSTANCE_ID(input);
+    //通过UNITY_ACCESS_INSTANCED_PROP获取每实例数据
+>>>>>>> parent of 6397d3e (Draw Calls Finished)
 =======
     //从input中提取实例的ID并将其存储在其他实例化宏所依赖的全局静态变量中
     UNITY_SETUP_INSTANCE_ID(input);

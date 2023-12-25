@@ -13,7 +13,10 @@ Shader "Custom RP/Unlit"
     {
         _BaseColor("Color",Color) = (1.0,1.0,1.0,1.0)
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> parent of 6397d3e (Draw Calls Finished)
         
         //混合模式使用的值，其值应该是枚举值，但是这里使用float
         //特性用于在Editor下更方便编辑
@@ -23,6 +26,9 @@ Shader "Custom RP/Unlit"
         //深度写入模式
         [Enum(Off,0,On,1)] _ZWrite("Z Write",Float) = 1
         
+<<<<<<< HEAD
+>>>>>>> parent of 6397d3e (Draw Calls Finished)
+=======
 >>>>>>> parent of 6397d3e (Draw Calls Finished)
     }
 
@@ -34,7 +40,10 @@ Shader "Custom RP/Unlit"
         Pass
         {
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> parent of 6397d3e (Draw Calls Finished)
             
             //设置混合模式
             //Opaque物体的混合模式为Src=One、Dst=Zero，即新颜色会完全覆盖旧颜色，

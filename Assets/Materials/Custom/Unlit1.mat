@@ -65,7 +65,11 @@ Material:
     - _Cutoff: 0.5
     - _DetailNormalMapScale: 1
 <<<<<<< HEAD
+<<<<<<< HEAD
     - _DstBlend: 0
+=======
+    - _DstBlend: 10
+>>>>>>> parent of 6397d3e (Draw Calls Finished)
 =======
     - _DstBlend: 10
 >>>>>>> parent of 6397d3e (Draw Calls Finished)
@@ -79,7 +83,11 @@ Material:
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
 <<<<<<< HEAD
+<<<<<<< HEAD
     - _SrcBlend: 1
+=======
+    - _SrcBlend: 5
+>>>>>>> parent of 6397d3e (Draw Calls Finished)
 =======
     - _SrcBlend: 5
 >>>>>>> parent of 6397d3e (Draw Calls Finished)
