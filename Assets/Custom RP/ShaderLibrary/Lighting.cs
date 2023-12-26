@@ -30,15 +30,20 @@ public class Lighting
 
     CullingResults cullingResults;
 
-    public void Setup(ScriptableRenderContext context, CullingResults cullingResults)
+    private Shadows shadows = new Shadows();
+
+    public void Setup(ScriptableRenderContext context, CullingResults cullingResults,ShadowSettings shadowSettings)
     {
         this.cullingResults = cullingResults;
 
         //对于传递光源数据到GPU的这一过程，我们可能用不到CommandBuffer下的指令
         //（其实用到了buffer.SetGlobalVector），但我们依然使用它来用于Debug
         buffer.BeginSample(bufferName);
-        //SetupDirectionalLight();
+        
+        shadows.Setup(context,cullingResults,shadowSettings);
         SetupLights();
+        shadows.Render();
+        
         buffer.EndSample(bufferName);
 
         //这里只是提交CommandBuffer到Context的指令队列中，只有等到context.Submit()才会真正依次执行指令
@@ -66,6 +71,8 @@ public class Lighting
                     break;
                 }
             }
+            
+            //可能之后有其他light
         }
         
         //传递当前有效光源数、光源颜色Vector数组、光源方向Vector数组。
@@ -92,5 +99,12 @@ public class Lighting
         dirLightColors[index] = visibleLight.finalColor;
         //光源方向为光源localToWorldMatrix的第三列，这里也需要取反
         dirLightDirections[index] = -visibleLight.localToWorldMatrix.GetColumn(2);
+        //保留阴影
+        shadows.ReserveDirectionalShadows(visibleLight.light,index);
+    }
+
+    public void Cleanup()
+    {
+        shadows.Cleanup();
     }
 }

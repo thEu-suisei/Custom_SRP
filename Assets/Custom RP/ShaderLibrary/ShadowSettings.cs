@@ -32,4 +32,9 @@ public class ShadowSettings
     {
         atlasSize = TextureSize._1024
     };
+
+    bool Cull(float maxShadowDistance)
+    {
+        return false;
+    }
 }
