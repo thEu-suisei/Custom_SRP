@@ -13,19 +13,19 @@ float3 IncomingLight(Surface surface,Light light)
 }
 
 //新增的GetLighting方法，传入surface和light，返回真正的光照计算结果，即物体表面最终反射出的RGB光能量
-float3 GetLighting (Surface surface,Light light) {
+float3 GetLighting (Surface surface,BRDF brdf,Light light) {
     //物体表面接收到的光能量 * 物体表面Albedo（反射率）
-    return IncomingLight(surface,light) * surface.color;
+    return IncomingLight(surface,light) * DirectBRDF(surface,brdf,light);
 }
 
 //GetLighting返回光照结果，这个GetLighting只传入一个surface
-float3 GetLighting(Surface surface)
+float3 GetLighting(Surface surface,BRDF brdf)
 {
     float3 color = 0.0;
 
     for(int i =0;i<GetDirectionalLightCount();i++)
     {
-        color+=GetLighting(surface,GetDirectionalLight(i));
+        color+=GetLighting(surface,brdf,GetDirectionalLight(i));
     }
 
     return color;

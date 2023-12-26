@@ -18,6 +18,8 @@ Shader "Custom RP/Lit"
         //Clip函数会使一些GPU优化失效，我们不希望所有使用Unlit.shader的着色器都包含Clip函数，
         //因为很多材质用不到AlphaTest，因此，我们选择使用Shader关键字Toggle来控制Shader变体的编译。
         [Toggle(_CLIPPING)] _Clipping ("Alpha Clipping", Float) = 0
+        
+        [Toggle(_PREMULTIPLY_ALPHA)] _PremulAlpha ("Premultiply Alpha", Float) = 0
 
         //混合模式使用的值，其值应该是枚举值，但是这里使用float
         //[Enum(UnityEngine.Rendering.BlendMode)]:特性用于在Editor下更方便编辑
@@ -61,6 +63,11 @@ Shader "Custom RP/Lit"
             //告诉Unity启用_CLIPPING关键字时编译不同版本的Shader
             #pragma shader_feature _CLIPPING
 
+            //决定是否预乘alpha
+            //true：将对diffuse乘alpha，不改变specular，比如玻璃材质，同时需要切换blend方式
+            //false：diffuse和specular都将改变
+            #pragma shader_feature _PREMULTIPLY_ALPHA
+
             //identify vertex shader and fragment shader with name
             #pragma vertex LitPassVertex
             #pragma fragment LitPassFragment
@@ -69,4 +76,7 @@ Shader "Custom RP/Lit"
             ENDHLSL
         }
     }
+    
+    //告诉Unity编辑器使用CustomShaderGUI类的一个实例来为使用Lit.shader的材质绘制Inspector窗口
+    CustomEditor "CustomShaderGUI"
 }

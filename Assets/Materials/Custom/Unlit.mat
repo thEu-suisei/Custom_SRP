@@ -7,7 +7,7 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: Unlit1
+  m_Name: Unlit
   m_Shader: {fileID: 4800000, guid: 2a439b7a36680234c9f4992bef1c7af8, type: 3}
   m_Parent: {fileID: 2100000, guid: 2c427ad425c18c44d979681feda04621, type: 2}
   m_ModifiedSerializedProperties: 16

@@ -7,6 +7,8 @@
 struct Surface {
     //顶点法线，在这里不明确其坐标空间，因为光照可以在任何空间下计算，在该项目中使用世界空间
     float3 normal;
+    //从表面指向视点的方向
+    float3 viewDirection;
     //表面颜色
     float3 color;
     //透明度

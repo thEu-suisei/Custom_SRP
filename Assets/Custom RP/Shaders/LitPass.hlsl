@@ -4,6 +4,7 @@
 #include "../ShaderLibrary/Common.hlsl"
 #include "../ShaderLibrary/Surface.hlsl"
 #include "../ShaderLibrary/Light.hlsl"
+#include "../ShaderLibrary/BRDF.hlsl"
 #include "../ShaderLibrary/Lighting.hlsl"
 
 //使用Core RP Library的CBUFFER宏指令包裹材质属性，让Shader支持SRP Batcher，同时在不支持SRP Batcher的平台自动关闭它。
@@ -24,8 +25,8 @@ UNITY_INSTANCING_BUFFER_START(UnityPerMaterial)
     UNITY_DEFINE_INSTANCED_PROP(float4, _BaseColor)
     //Alpha裁剪
     UNITY_DEFINE_INSTANCED_PROP(float, _Cutoff)
-    UNITY_DEFINE_INSTANCED_PROP(float,_Metallic)
-    UNITY_DEFINE_INSTANCED_PROP(float,_Smoothness)
+    UNITY_DEFINE_INSTANCED_PROP(float, _Metallic)
+    UNITY_DEFINE_INSTANCED_PROP(float, _Smoothness)
 UNITY_INSTANCING_BUFFER_END(UnityPerMaterial)
 
 //使用结构体定义顶点着色器的输入，一个是为了代码更整洁，一个是为了支持GPU Instancing（获取object的index）
@@ -34,7 +35,7 @@ struct Attributes
     //OS代表Object Space
     float3 positionOS : POSITION;
     //顶点法线信息，用于光照计算，即模型空间
-	float3 normalOS : NORMAL;
+    float3 normalOS : NORMAL;
     float2 baseUV : TEXCOORD0;
     //定义GPU Instancing使用的每个实例的ID，告诉GPU当前绘制的是哪个Object
     UNITY_VERTEX_INPUT_INSTANCE_ID
@@ -45,9 +46,10 @@ struct Attributes
 struct Varyings
 {
     //CS表示Clip Space
-    float4 positionCS: SV_POSITION;
+    float4 positionCS : SV_POSITION;
+    float3 positionWS : VAR_POSITION;
     //世界空间下的法线信息
-    float3 normalWS:VAR_NORMAL;
+    float3 normalWS : VAR_NORMAL;
     float2 baseUV : VAR_BASE_UV;
     //定义每一个片元对应的object的唯一ID
     UNITY_VERTEX_INPUT_INSTANCE_ID
@@ -64,7 +66,7 @@ Varyings LitPassVertex(Attributes input)
     UNITY_TRANSFER_INSTANCE_ID(input, output);
     float3 positionWS = TransformObjectToWorld(input.positionOS.xyz);
     output.positionCS = TransformWorldToHClip(positionWS);
-	//使用TransformObjectToWorldNormal将法线从模型空间转换到世界空间，注意不能使用TransformObjectToWorld
+    //使用TransformObjectToWorldNormal将法线从模型空间转换到世界空间，注意不能使用TransformObjectToWorld
     output.normalWS = TransformObjectToWorldNormal(input.normalOS);
     //应用纹理ST变换，访问实例的_BaseMap_ST
     float4 baseST = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _BaseMap_ST);
@@ -85,9 +87,9 @@ float4 LitPassFragment(Varyings input) : SV_TARGET
     float4 base = baseMap * baseColor;
     //只有在_CLIPPING关键字启用时编译该段代码
     #if defined(_CLIPPING)
-    clip(base.a - UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial,_Cutoff));
+    clip(base.a - UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _Cutoff));
     #endif
-    
+
     //可视化法线方向
     // base.rgb = input.normalWS;
     // return base;
@@ -99,13 +101,20 @@ float4 LitPassFragment(Varyings input) : SV_TARGET
     //在片元着色器中构建Surface结构体，即物体表面属性，构建完成之后就可以在片元着色器中计算光照
     Surface surface;
     surface.normal = normalize(input.normalWS);
-    surface.color=base.rgb;
+    surface.color = base.rgb;
     surface.alpha = base.a;
-    surface.metallic = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial,_Metallic);
-    surface.smoothness = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial,_Smoothness);
-    float3 color = GetLighting(surface);
+    surface.metallic = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _Metallic);
+    surface.smoothness = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _Smoothness);
+    surface.viewDirection = normalize(_WorldSpaceCameraPos - input.positionWS);
 
-    return float4(color,surface.alpha);
+    #if defined(_PREMULTIPLY_ALPHA)
+        BRDF brdf = GetBRDF(surface,true);
+    #else
+        BRDF brdf = GetBRDF(surface);
+    #endif
+    float3 color = GetLighting(surface, brdf);
+
+    return float4(color, surface.alpha);
 }
 
 #endif

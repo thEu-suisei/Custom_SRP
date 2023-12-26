@@ -6,7 +6,10 @@ using Random = UnityEngine.Random;
 public class MeshBall : MonoBehaviour
 {
     //使用int类型的PropertyId代替属性名称
-    static int baseColorId = Shader.PropertyToID("_BaseColor");
+    private static int
+        baseColorId = Shader.PropertyToID("_BaseColor"),
+        metallicId = Shader.PropertyToID("_Metallic"),
+        smoothnessId = Shader.PropertyToID("_Smoothness");
 
     //GPU Instancing使用的Mesh
     [SerializeField] Mesh mesh = default;
@@ -19,6 +22,11 @@ public class MeshBall : MonoBehaviour
     private Matrix4x4[] matrices = new Matrix4x4[1023];
     private Vector4[] baseColors = new Vector4[1023];
 
+    //每个GameObject的金属度和光滑度
+    private float[]
+        metallic = new float[1023],
+        smoothness = new float[1023];
+
     private MaterialPropertyBlock block;
 
     private void Awake()
@@ -29,13 +37,17 @@ public class MeshBall : MonoBehaviour
             //TRS:Creates a translation, rotation and scaling matrix.
             matrices[i] = Matrix4x4.TRS(
                 Random.insideUnitSphere * 10f,
-                Quaternion.Euler(Random.value*360f,Random.value*360f,Random.value*360f),
-                Vector3.one*Random.Range(0.5f,1.5f));
-            
-            baseColors[i] = new Vector4(
-                Random.value,
-                Random.value,
-                Random.value, Random.Range(0.1f,1f));
+                Quaternion.Euler(Random.value * 360f, Random.value * 360f, Random.value * 360f),
+                Vector3.one * Random.Range(0.5f, 1.5f));
+
+            baseColors[i] = new Vector4
+                (
+                    Random.value,
+                    Random.value,
+                    Random.value, Random.Range(0.1f, 1f)
+                );
+            metallic[i] = Random.value < 0.25f ? 1f : 0f;
+            smoothness[i] = Random.Range(0.05f, 0.95f);
         }
     }
 
@@ -47,6 +59,8 @@ public class MeshBall : MonoBehaviour
             block = new MaterialPropertyBlock();
             //设置向量属性数组
             block.SetVectorArray(baseColorId, baseColors);
+            block.SetFloatArray(metallicId, metallic);
+            block.SetFloatArray(smoothnessId, smoothness);
         }
 
         //一帧绘制多个网格，并且没有创建不必要的游戏对象的开销（一次最多只能绘制1023个实例），材质必须支持GPU Instancing

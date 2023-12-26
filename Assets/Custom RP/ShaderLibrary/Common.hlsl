@@ -16,23 +16,27 @@
 #include "UnityInput.hlsl"
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/UnityInstancing.hlsl"
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/SpaceTransforms.hlsl"
-
+#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/CommonMaterial.hlsl"
 
 //==========================================================
 
 //自己定义MVP矩阵变换，已注释，用Core RP Pipeline package替换，该包实现了这种常见的功能
- // float3 TransformObjectToWorld(float3 positionOS)
- // {
- //     return mul(unity_ObjectToWorld, float4(positionOS,1.0)).xyz;
- // }
- //
- // float4 TransformWorldToHClip (float3 positionWS)
- // {
- //     return mul(unity_MatrixVP, float4(positionWS, 1.0));
- // }
+// float3 TransformObjectToWorld(float3 positionOS)
+// {
+//     return mul(unity_ObjectToWorld, float4(positionOS,1.0)).xyz;
+// }
+//
+// float4 TransformWorldToHClip (float3 positionWS)
+// {
+//     return mul(unity_MatrixVP, float4(positionWS, 1.0));
+// }
 
 //==========================================================
 
+float Square(float v)
+{
+    return v * v;
+}
 
 
 #endif
