@@ -75,6 +75,32 @@ Shader "Custom RP/Lit"
             #include "LitPass.hlsl"
             ENDHLSL
         }
+
+        Pass
+        {
+            Tags
+            {
+                "LightMode"="ShadowCaster"
+            }
+            
+            ColorMask 0
+            
+            HLSLPROGRAM
+            
+            //支持的最低平台
+            #pragma target 3.5
+            //支持Alpha Test的裁剪
+            #pragma shader_feature _CLIPPING
+            //定义diffuse项是否使用Premultiplied alpha的关键字
+            #pragma multi_compile_instancing
+            #pragma vertex ShadowCasterPassVertex
+            #pragma fragment ShadowCasterPassFragment
+            //阴影相关方法写在ShadowCasterPass.hlsl
+            #include "ShadowCasterPass.hlsl"
+
+            ENDHLSL
+
+        }
     }
     
     //告诉Unity编辑器使用CustomShaderGUI类的一个实例来为使用Lit.shader的材质绘制Inspector窗口
