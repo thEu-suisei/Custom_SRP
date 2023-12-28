@@ -6,7 +6,6 @@ using UnityEngine.Rendering;
 public class Lighting
 {
     private const string bufferName = "Lighting";
-
     //最大方向光源数量
     private const int maxDirLightCount = 4;
 
@@ -30,7 +29,7 @@ public class Lighting
 
     //主要使用到CullingResults下的光源信息
     private CullingResults cullingResults;
-
+    
     //渲染阴影贴图相关
     private Shadows shadows = new Shadows();
 
@@ -56,7 +55,7 @@ public class Lighting
 
     //配置Vector4数组中的单个属性
     //传进的visibleLight添加了ref关键字，防止copy整个VisibleLight结构体（该结构体空间很大）
-    void SetupDirectionalLight(int index, ref VisibleLight visibleLight)
+    void SetupDirectionalLight(int index,ref VisibleLight visibleLight)
     {
         //VisibleLight.finalColor为光源颜色（实际是光源颜色*光源强度，但是默认不是线性颜色空间，需要将Graphics.lightsUseLinearIntensity设置为true）
         dirLightColors[index] = visibleLight.finalColor;
@@ -74,7 +73,7 @@ public class Lighting
         for (int i = 0; i < visibleLights.Length; i++)
         {
             VisibleLight visibleLight = visibleLights[i];
-
+            
             //只配置方向光源
             if (visibleLight.lightType == LightType.Directional)
             {
@@ -87,7 +86,7 @@ public class Lighting
                 }
             }
         }
-
+        
         //传递当前有效光源数、光源颜色Vector数组、光源方向Vector数组。
         buffer.SetGlobalInt(dirLightCountId, visibleLights.Length);
         buffer.SetGlobalVectorArray(dirLightColorsId, dirLightColors);

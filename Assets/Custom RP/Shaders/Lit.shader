@@ -1,92 +1,73 @@
-//Unlit.shader
-//在Unity中所编写的 .shader文件，其实是在编写Shader类，它和通常意义上的
-//Shader最大的区别在于一个Shader类之中可以定义多个通俗意义上的Shader（着
-//色器程序），也就是多个SubShader，而这些SubShader其实才是我们通常所说的
-//Shader。
-
-//Shader后面的字符串用于创建Unity Eiditor中的material下拉条目
 Shader "Custom RP/Lit"
 {
-    //[可选：特性]变量名(Inspector上的文本,类型名) = 默认值
-    //[optional: attribute] name("display text in Inspector", type name) = default value
     Properties
     {
+        //[可选：特性]变量名(Inspector上的文本,类型名) = 默认值
+        //[optional: attribute] name("display text in Inspector", type name) = default value
+
         //"white"为默认纯白贴图，{}在很久之前用于纹理的设置
         _BaseMap("Texture", 2D) = "white"{}
-        _BaseColor("Color",Color) = (0.5, 0.5, 0.5, 1.0)
-        _Cutoff ("Alpha Cutoff", Range(0.0, 1.0)) = 0.5
-        //Clip函数会使一些GPU优化失效，我们不希望所有使用Unlit.shader的着色器都包含Clip函数，
-        //因为很多材质用不到AlphaTest，因此，我们选择使用Shader关键字Toggle来控制Shader变体的编译。
-        [Toggle(_CLIPPING)] _Clipping ("Alpha Clipping", Float) = 0
-        
-        [Toggle(_PREMULTIPLY_ALPHA)] _PremulAlpha ("Premultiply Alpha", Float) = 0
+        _BaseColor("Color",Color) = (0.5,0.5,0.5,1.0)
+        //透明度测试阈值
+        _Cutoff("Alpha Cutoff",Range(0.0,1.0)) = 0.5
+        //Clip的Shader关键字，启用该Toggle会将_Clipping关键字添加到该材质的活动关键字列表中，而禁用该Toggle会将其删除
+        [Toggle(_CLIPPING)] _Clipping("Alpha Clipping",Float) = 0
+        //PBR模型下Metallic Workflow的两个物体表面参数
+        //金属度
+        _Metallic("Metallic",Range(0,1)) = 0
+        //光滑度
+        _Smoothness("Smoothness",Range(0,1)) = 0.5
+        //Premultiply Alpha的关键字
+        [Toggle(_PREMULTIPLY_ALPHA)]_PremulAlpha("Premultiply Alpha",Float) = 0
 
         //混合模式使用的值，其值应该是枚举值，但是这里使用float
-        //[Enum(UnityEngine.Rendering.BlendMode)]:特性用于在Editor下更方便编辑
+        //特性用于在Editor下更方便编辑
         [Enum(UnityEngine.Rendering.BlendMode)]_SrcBlend("Src Blend",Float) = 1
         [Enum(UnityEngine.Rendering.BlendMode)]_DstBlend("Dst Blend",Float) = 0
-
         //深度写入模式
         [Enum(Off,0,On,1)] _ZWrite("Z Write",Float) = 1
-        
-        _Metallic("Metallic",Range(0,1))=0
-        _Smoothness("Smoothness",Range(0,1))=0.5
-
     }
 
-    //着色器程序
-    //SubShader的组成是一到多个Pass（通道）
     SubShader
     {
-        //Pass是Shader对象的基本元素，它包含设置GPU状态的指令，以及在GPU上运行的着色器程序。
         Pass
         {
             //设置Pass Tags，最关键的Tag为"LightMode"
-            Tags {
-				"LightMode" = "CustomLit"
-			}
-
+            Tags
+            {
+                "LightMode" = "CustomLit"
+            }
             //设置混合模式
-            //Opaque物体的混合模式为Src=One、Dst=Zero，即新颜色会完全覆盖旧颜色，
-            //而Transparent物体的混合模式为Src=SrcAlhpa、Dst=OneMinusSrcAlpha
             Blend [_SrcBlend] [_DstBlend]
+            ZWrite [_ZWrite]
 
-            //HLSLPROGRAM & ENDHLSL :it's possible put other non-HLSL code inside the Pass block
             HLSLPROGRAM
-            //pragma:在许多编程语言中用于发出特殊的编译器指令。
             //不生成OpenGL ES 2.0等图形API的着色器变体，其不支持可变次数的循环与线性颜色空间
             #pragma target 3.5
-            
-            //这一指令会让Unity生成两个该Shader的变体，一个支持GPU Instancing，另一个不支持。
-            #pragma multi_compile_instancing
-            
             //告诉Unity启用_CLIPPING关键字时编译不同版本的Shader
             #pragma shader_feature _CLIPPING
-
-            //决定是否预乘alpha
-            //true：将对diffuse乘alpha，不改变specular，比如玻璃材质，同时需要切换blend方式
-            //false：diffuse和specular都将改变
+            //定义diffuse项是否使用Premultiplied alpha的关键字
             #pragma shader_feature _PREMULTIPLY_ALPHA
-
-            //identify vertex shader and fragment shader with name
+            //这一指令会让Unity生成两个该Shader的变体，一个支持GPU Instancing，另一个不支持。
+            #pragma multi_compile_instancing
             #pragma vertex LitPassVertex
             #pragma fragment LitPassFragment
-
             #include "LitPass.hlsl"
             ENDHLSL
         }
 
+        //渲染阴影的Pass
         Pass
         {
+            //阴影Pass的LightMode为ShadowCaster
             Tags
             {
-                "LightMode"="ShadowCaster"
+                "LightMode" = "ShadowCaster"
             }
-            
+            //因为只需要写入深度，关闭对颜色通道的写入
             ColorMask 0
-            
+
             HLSLPROGRAM
-            
             //支持的最低平台
             #pragma target 3.5
             //支持Alpha Test的裁剪
@@ -97,12 +78,10 @@ Shader "Custom RP/Lit"
             #pragma fragment ShadowCasterPassFragment
             //阴影相关方法写在ShadowCasterPass.hlsl
             #include "ShadowCasterPass.hlsl"
-
             ENDHLSL
-
         }
     }
-    
+
     //告诉Unity编辑器使用CustomShaderGUI类的一个实例来为使用Lit.shader的材质绘制Inspector窗口
     CustomEditor "CustomShaderGUI"
 }

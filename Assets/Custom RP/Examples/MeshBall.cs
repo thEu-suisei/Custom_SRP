@@ -1,51 +1,40 @@
 using System;
 using UnityEngine;
-using UnityEngine.UI;
 using Random = UnityEngine.Random;
+
 
 public class MeshBall : MonoBehaviour
 {
-    //使用int类型的PropertyId代替属性名称
-    private static int
-        baseColorId = Shader.PropertyToID("_BaseColor"),
+    //和之前一样，使用int类型的PropertyId代替属性名称
+    private static int baseColorId = Shader.PropertyToID("_BaseColor"),
         metallicId = Shader.PropertyToID("_Metallic"),
         smoothnessId = Shader.PropertyToID("_Smoothness");
 
     //GPU Instancing使用的Mesh
-    [SerializeField] Mesh mesh = default;
-
+    [SerializeField] private Mesh mesh = default;
     //GPU Instancing使用的Material
-    [SerializeField] Material material = default;
+    [SerializeField] private Material material = default;
 
     //我们可以new 1000个GameObject，但是我们也可以直接通过每实例数据去绘制GPU Instancing的物体
     //创建每实例数据
     private Matrix4x4[] matrices = new Matrix4x4[1023];
     private Vector4[] baseColors = new Vector4[1023];
 
-    //每个GameObject的金属度和光滑度
-    private float[]
-        metallic = new float[1023],
+    private float[] metallic = new float[1023],
         smoothness = new float[1023];
 
     private MaterialPropertyBlock block;
 
     private void Awake()
     {
+        
         for (int i = 0; i < matrices.Length; i++)
         {
             //在半径10米的球空间内随机实例小球的位置
-            //TRS:Creates a translation, rotation and scaling matrix.
-            matrices[i] = Matrix4x4.TRS(
-                Random.insideUnitSphere * 10f,
+            matrices[i] = Matrix4x4.TRS(Random.insideUnitSphere * 10f,
                 Quaternion.Euler(Random.value * 360f, Random.value * 360f, Random.value * 360f),
                 Vector3.one * Random.Range(0.5f, 1.5f));
-
-            baseColors[i] = new Vector4
-                (
-                    Random.value,
-                    Random.value,
-                    Random.value, Random.Range(0.1f, 1f)
-                );
+            baseColors[i] = new Vector4(Random.value, Random.value, Random.value, Random.Range(0.5f,1f));
             metallic[i] = Random.value < 0.25f ? 1f : 0f;
             smoothness[i] = Random.Range(0.05f, 0.95f);
         }

@@ -17,7 +17,7 @@ UNITY_INSTANCING_BUFFER_START(UnityPerMaterial)
     UNITY_DEFINE_INSTANCED_PROP(float,_Cutoff)
 UNITY_INSTANCING_BUFFER_END(UnityPerMaterial)
 
-//使用结构体定义顶点着色器的输入，为了支持GPU Instancing（获取object的index）
+//使用结构体定义顶点着色器的输入，一个是为了代码更整洁，一个是为了支持GPU Instancing（获取object的index）
 struct Attributes
 {
     float3 positionOS:POSITION;
@@ -26,7 +26,8 @@ struct Attributes
     UNITY_VERTEX_INPUT_INSTANCE_ID
 };
 
-//给顶点着色器的输出（即片元着色器的输入）
+//为了在片元着色器中获取实例ID，给顶点着色器的输出（即片元着色器的输入）也定义一个结构体
+//命名为Varings是因为它包含的数据可以在同一三角形的片段之间变化
 struct Varyings
 {
     float4 positionCS:SV_POSITION;
@@ -65,7 +66,7 @@ void ShadowCasterPassFragment(Varyings input)
     //clip函数的传入参数如果<=0则会丢弃该片元
     clip(base.a - UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _Cutoff));
     #endif
-    //不需要返回任何值，其片元深度会写入阴影贴图的DepthBuffer
+    //到这里就结束了，我们不需要返回任何值，其片元深度会写入阴影贴图的DepthBuffer
 }
 
 #endif

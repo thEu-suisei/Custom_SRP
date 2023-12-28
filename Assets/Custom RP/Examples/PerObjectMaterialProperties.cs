@@ -1,6 +1,3 @@
-//PerObjectMaterialProperties.cs
-//该脚本作用：使不同物体使用同一材质可以设置不同的参数
-
 using UnityEngine;
 
 //特性：不允许同一物体挂多个该组件
