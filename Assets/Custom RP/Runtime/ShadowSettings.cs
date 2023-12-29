@@ -36,7 +36,7 @@ public class ShadowSettings
     {
         public TextureSize atlasSize;
         
-        //PCF Filter
+        //PCF Filter尺寸
         public FilterMode filter;
         
         //阴影级联的数量

@@ -18,6 +18,7 @@ public class Shadows
         cascadeCountId = Shader.PropertyToID("_CascadeCount"),
         cascadeCullingSpheresId = Shader.PropertyToID("_CascadeCullingSpheres"),
         cascadeDataId = Shader.PropertyToID("_CascadeData"),
+        shadowAtlasSizeId = Shader.PropertyToID("_ShadowAtlasSize"),
         shadowDistanceFadeId = Shader.PropertyToID("_ShadowDistanceFade");
 
     static Vector4[]
@@ -151,10 +152,11 @@ public class Shadows
             RenderDirectionalShadows(i, split, tileSize);
         }
 
+        //Cascade
         buffer.SetGlobalInt(cascadeCountId, settings.directional.cascadeCount);
         buffer.SetGlobalVectorArray(cascadeCullingSpheresId, cascadeCullingSpheres);
-        //传递
         buffer.SetGlobalVectorArray(cascadeDataId, cascadeData);
+        
         //传递所有阴影变换矩阵给GPU
         buffer.SetGlobalMatrixArray(dirShadowMatricesId, dirShadowMatrices);
         //传递最大阴影距离，好让GPU在超出范围的阴影自然消失
@@ -168,7 +170,12 @@ public class Shadows
                 1f / (1f - f * f))
         );
         
+        //PCF
+        //传递向量，x存储atlas大小，y存储texel大小
         SetKeywords();
+        buffer.SetGlobalVector(
+            shadowAtlasSizeId,
+            new Vector4(atlasSize,1f/atlasSize));
         
         buffer.EndSample(bufferName);
         ExecuteBuffer();
