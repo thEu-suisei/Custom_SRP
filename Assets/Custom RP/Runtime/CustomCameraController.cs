@@ -70,7 +70,7 @@ public class CustomCameraController : MonoBehaviour
         new AnimationCurve(new Keyframe(0f, 0.5f, 0f, 5f), new Keyframe(1f, 2.5f, 0f, 0f));
 
     //插值相机旋转99%到目标所需的时间。
-    public float rotationLerpTime = 0.1f;
+    public float rotationLerpTime = 0.01f;
 
     void OnEnable()
     {
