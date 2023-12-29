@@ -5,7 +5,10 @@ EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Scenes:
-  - enabled: 1
+  - enabled: 0
     path: Assets/Scenes/Directional Shadow.unity
     guid: daa5f8c0f712d934d9d6af3ee85cf9fd
+  - enabled: 1
+    path: Assets/Scenes/MainScene.unity
+    guid: 3bf53081a97604946897a22e4119f14e
   m_configObjects: {}
