@@ -26,11 +26,26 @@ public class ShadowSettings
     public struct Directional
     {
         public TextureSize atlasSize;
+        
+        //阴影级联的数量
+        [Range(1, 4)]
+        public int cascadeCount;
+        
+        //每个级联的的比例
+        [Range(0f, 1f)]
+        public float cascadeRatio1, cascadeRatio2, cascadeRatio3;
+
+        //使用级联方法调用函数前需要提前打包这些参数
+        public Vector3 CascadeRatios => new Vector3(cascadeRatio1, cascadeRatio2, cascadeRatio3);
     }
 
     //创建一个1024大小的Directional Shadow Map
     public Directional directional = new Directional()
     {
-        atlasSize = TextureSize._1024
+        atlasSize = TextureSize._1024,
+        cascadeCount = 4,
+        cascadeRatio1 = 0.1f,
+        cascadeRatio2 = 0.25f,
+        cascadeRatio3 = 0.5f
     };
 }

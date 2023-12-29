@@ -4,6 +4,8 @@
 
 //宏定义最大支持阴影的方向光源数，要与CPU端同步，为4
 #define MAX_SHADOWED_DIRECTIONAL_LIGHT_COUNT 4
+//最大阴影级联数，要与CPU同步
+#define MAX_CASCADE_COUNT 4
 
 //接收CPU端传来的ShadowAtlas
 //使用TEXTURE2D_SHADOW来明确我们接收的是阴影贴图
@@ -16,7 +18,7 @@ SAMPLER_CMP(SHADOW_SAMPLER);
 
 //接收CPU端传来的每个Shadow Tile的阴影变换矩阵
 CBUFFER_START(_CustonShadows)
-    float4x4 _DirectionalShadowMatrices[MAX_SHADOWED_DIRECTIONAL_LIGHT_COUNT];
+    float4x4 _DirectionalShadowMatrices[MAX_SHADOWED_DIRECTIONAL_LIGHT_COUNT* MAX_CASCADE_COUNT];
 CBUFFER_END
 
 //每个方向光源的的阴影信息（包括不支持阴影的光源，不支持，其阴影强度就是0）
