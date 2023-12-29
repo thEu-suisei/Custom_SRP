@@ -80,7 +80,7 @@ public partial class CameraRenderer
     
     #else
     
-        const string SampleName => bufferName;
+     string SampleName => bufferName;
     
     #endif
 }
