@@ -32,30 +32,33 @@ int GetDirectionalLightCount()
 }
 
 //构造一个光源的ShadowData
-DirectionalShadowData GetDirectionalShadowData(int lightIndex)
+DirectionalShadowData GetDirectionalShadowData(int lightIndex, ShadowData shadowData)
 {
     DirectionalShadowData data;
     //阴影强度
-    data.strength = _DirectionalLightShadowData[lightIndex].x;
+    data.strength = _DirectionalLightShadowData[lightIndex].x * shadowData.strength;
     //Tile索引
-    data.tileIndex = _DirectionalLightShadowData[lightIndex].y;
+    data.tileIndex = _DirectionalLightShadowData[lightIndex].y + shadowData.cascadeIndex;
     return data;
 }
 
 //对于每个片元，构造一个方向光源并返回，其颜色与方向取自常量缓冲区的数组中index下标处
-Light GetDirectionalLight(int index, Surface surfaceWS)
+Light GetDirectionalLight(int index, Surface surfaceWS, ShadowData shadowData)
 {
     Light light;
     //float4的rgb和xyz完全等效
     light.color = _DirectionalLightColors[index].rgb;
     light.direction = _DirectionalLightDirections[index].xyz;
     //构造光源阴影信息
-    DirectionalShadowData shadowData = GetDirectionalShadowData(index);
+    DirectionalShadowData dirShadowData  = GetDirectionalShadowData(index,shadowData);
     //根据片元的强度
-    light.attenuation = GetDirectionalShadowAttenuation(shadowData, surfaceWS);
+    light.attenuation = GetDirectionalShadowAttenuation(dirShadowData, surfaceWS);
+
+    //可视化级联大小，测试
+    // light.attenuation = shadowData.cascadeIndex * 0.25;
+    
     return light;
 }
-
 
 
 #endif

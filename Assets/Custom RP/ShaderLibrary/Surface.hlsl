@@ -20,6 +20,9 @@ struct Surface
     float metallic;
     //光滑度
     float smoothness;
+    //深度
+    float depth;
+
 };
 
 #endif

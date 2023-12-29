@@ -8,7 +8,11 @@ public class ShadowSettings
     //其具体逻辑猜测如下：
     //1.根据maxDistance（或者摄像机远平面）得到一个BoundingBox，这个BoundingBox（也可能是个球型）容纳了所有要渲染阴影的物体
     //2.根据这个BoundingBox（也可能是个球型）和方向光源的方向，确定渲染阴影贴图用的正交摄像机的视锥体，渲染阴影贴图
-    [Min(0f)] public float maxDistance = 100f;
+    [Min(0.001f)] public float maxDistance = 100f;
+    
+    //用于最远阴影渐变消失变换强度的系数
+    [Range(0.001f, 1f)]
+    public float distanceFade = 0.1f;
 
     //阴影贴图的所有尺寸，使用枚举防止出现其他数值，范围为256-8192。
     public enum TextureSize
@@ -37,6 +41,9 @@ public class ShadowSettings
 
         //使用级联方法调用函数前需要提前打包这些参数
         public Vector3 CascadeRatios => new Vector3(cascadeRatio1, cascadeRatio2, cascadeRatio3);
+    
+        [Range(0.001f, 1f)]
+        public float cascadeFade;
     }
 
     //创建一个1024大小的Directional Shadow Map
@@ -46,6 +53,7 @@ public class ShadowSettings
         cascadeCount = 4,
         cascadeRatio1 = 0.1f,
         cascadeRatio2 = 0.25f,
-        cascadeRatio3 = 0.5f
+        cascadeRatio3 = 0.5f,
+        cascadeFade = 0.1f
     };
 }

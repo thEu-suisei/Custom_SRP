@@ -5,15 +5,24 @@ using UnityEngine.Rendering;
 public class Shadows
 {
     private const string bufferName = "Shadows";
+
     //支持阴影的方向光源最大数（注意这里，我们可以有多个方向光源，但支持的阴影的最多只有4个）
     private const int
         maxShadowedDirectionalLightCount = 4,
         maxCascades = 4;
+
     //方向光源Shadow Atlas、阴影变化矩阵数组的标识
-    private static int dirShadowAtlasId = Shader.PropertyToID("_DirectionalShadowAtlas"),
-        dirShadowMatricesId = Shader.PropertyToID("_DirectionalShadowMatrices");
+    private static int
+        dirShadowAtlasId = Shader.PropertyToID("_DirectionalShadowAtlas"),
+        dirShadowMatricesId = Shader.PropertyToID("_DirectionalShadowMatrices"),
+        cascadeCountId = Shader.PropertyToID("_CascadeCount"),
+        cascadeCullingSpheresId = Shader.PropertyToID("_CascadeCullingSpheres"),
+        shadowDistanceFadeId = Shader.PropertyToID("_ShadowDistanceFade");
+
+    static Vector4[] cascadeCullingSpheres = new Vector4[maxCascades];
+
     //将世界坐标转换到阴影贴图上的像素坐标的变换矩阵
-    private static Matrix4x4[] dirShadowMatrices = new Matrix4x4[maxShadowedDirectionalLightCount* maxCascades];
+    private static Matrix4x4[] dirShadowMatrices = new Matrix4x4[maxShadowedDirectionalLightCount * maxCascades];
 
     private CommandBuffer buffer = new CommandBuffer()
     {
@@ -63,15 +72,18 @@ public class Shadows
         //配置光源数不超过最大值
         //只配置开启阴影且阴影强度大于0的光源
         //忽略不需要渲染任何阴影的光源（通过cullingResults.GetShadowCasterBounds方法）
-        if (ShadowedDirectionalLightCount < maxShadowedDirectionalLightCount && light.shadows != LightShadows.None && light.shadowStrength > 0f
+        if (ShadowedDirectionalLightCount < maxShadowedDirectionalLightCount && light.shadows != LightShadows.None &&
+            light.shadowStrength > 0f
             && cullingResults.GetShadowCasterBounds(visibleLightIndex, out Bounds b))
         {
             ShadowedDirectionalLights[ShadowedDirectionalLightCount] = new ShadowedDirectionalLight()
             {
                 visibleLightIndex = visibleLightIndex
             };
-            return new Vector2(light.shadowStrength, settings.directional.cascadeCount *ShadowedDirectionalLightCount++);
+            return new Vector2(light.shadowStrength,
+                settings.directional.cascadeCount * ShadowedDirectionalLightCount++);
         }
+
         return Vector2.zero;
     }
 
@@ -120,8 +132,21 @@ public class Shadows
         {
             RenderDirectionalShadows(i, split, tileSize);
         }
+
+        buffer.SetGlobalInt(cascadeCountId, settings.directional.cascadeCount);
+        buffer.SetGlobalVectorArray(cascadeCullingSpheresId, cascadeCullingSpheres);
         //传递所有阴影变换矩阵给GPU
         buffer.SetGlobalMatrixArray(dirShadowMatricesId, dirShadowMatrices);
+        //传递最大阴影距离，好让GPU在超出范围的阴影自然消失
+        //Tips：下行被注释SetGlobalFloat替换成SetGlobalVector，因为当将它们作为矢量的XY组件发送到GPU时，使用一个除以值，这样我们就可以避免在着色器中进行分割，因为乘法更快。
+        //buffer.SetGlobalFloat(shadowDistanceId, settings.maxDistance);
+        float f = 1f - settings.directional.cascadeFade;
+        buffer.SetGlobalVector(
+            shadowDistanceFadeId,
+            new Vector4(1f / settings.maxDistance,
+                1f / settings.distanceFade,
+                1f / (1f - f * f))
+        );
         buffer.EndSample(bufferName);
         ExecuteBuffer();
     }
@@ -161,6 +186,13 @@ public class Shadows
                 out ShadowSplitData splitData);
             //splitData包括投射阴影物体应该如何被裁剪的信息，我们需要把它传递给shadowSettings
             shadowSettings.splitData = splitData;
+            if (index == 0)
+            {
+                Vector4 cullingSphere = splitData.cullingSphere;
+                cullingSphere.w *= cullingSphere.w;
+                cascadeCullingSpheres[i] = cullingSphere;
+            }
+
             int tileIndex = tileOffset + i;
             //设置当前要渲染的Tile区域
             //设置阴影变换矩阵(世界空间到光源裁剪空间）
@@ -186,7 +218,7 @@ public class Shadows
     Vector2 SetTileViewport(int index, int split, float tileSize)
     {
         Vector2 offset = new Vector2(index % split, index / split);
-        buffer.SetViewport(new Rect(offset.x * tileSize, offset.y * tileSize,tileSize,tileSize));
+        buffer.SetViewport(new Rect(offset.x * tileSize, offset.y * tileSize, tileSize, tileSize));
         return offset;
     }
 
@@ -200,6 +232,7 @@ public class Shadows
             m.m22 = -m.m22;
             m.m23 = -m.m23;
         }
+
         //光源裁剪空间坐标范围为[-1,1]，而纹理坐标和深度都是[0,1]，因此，我们将裁剪空间坐标转化到[0,1]内
         //然后将[0,1]下的x,y偏移到光源对应的Tile上
         float scale = 1f / split;
