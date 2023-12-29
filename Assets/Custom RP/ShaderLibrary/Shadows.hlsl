@@ -20,6 +20,7 @@ SAMPLER_CMP(SHADOW_SAMPLER);
 CBUFFER_START(_CustonShadows)
     int _CascadeCount;
     float4 _CascadeCullingSpheres[MAX_CASCADE_COUNT];
+    float4 _CascadeData[MAX_CASCADE_COUNT];
     float4x4 _DirectionalShadowMatrices[MAX_SHADOWED_DIRECTIONAL_LIGHT_COUNT * MAX_CASCADE_COUNT];
     float4 _ShadowDistanceFade;
 CBUFFER_END
@@ -29,6 +30,7 @@ struct DirectionalShadowData
 {
     float strength;
     int tileIndex;
+    float normalBias;
 };
 
 struct ShadowData
@@ -64,7 +66,9 @@ ShadowData GetShadowData(Surface surfaceWS)
             if (i == _CascadeCount - 1)
             {
                 data.strength *= FadedShadowStrength(
-                    distanceSqr, 1.0 / sphere.w, _ShadowDistanceFade.z
+                    distanceSqr,
+                    _CascadeData[i].x,
+                    _ShadowDistanceFade.z
                 );
             }
             break;
@@ -86,19 +90,26 @@ float SampleDirectionalShadowAtlas(float3 positionSTS)
 }
 
 //计算阴影衰减值，返回值[0,1]，0代表阴影衰减最大（片元完全在阴影中），1代表阴影衰减最少，片元完全被光照射。而[0,1]的中间值代表片元有一部分在阴影中
-float GetDirectionalShadowAttenuation(DirectionalShadowData data, Surface surfaceWS)
+float GetDirectionalShadowAttenuation(
+    DirectionalShadowData directional,
+    ShadowData global,
+    Surface surfaceWS)
 {
     //忽略不开启阴影和阴影强度为0的光源
-    if (data.strength <= 0.0)
+    if (directional.strength <= 0.0)
     {
         return 1.0;
     }
+    float3 normalBias = surfaceWS.normal * (directional.normalBias * _CascadeData[global.cascadeIndex].y);
     //根据对应Tile阴影变换矩阵和片元的世界坐标计算Tile上的像素坐标STS
-    float3 positionSTS = mul(_DirectionalShadowMatrices[data.tileIndex], float4(surfaceWS.position, 1.0)).xyz;
+    //法线偏移法：采样的位置从surfaceWS.position偏移至surfaceWS.position + normalBias
+    float3 positionSTS = mul(
+        _DirectionalShadowMatrices[directional.tileIndex],
+        float4(surfaceWS.position + normalBias, 1.0)).xyz;
     //采样Tile得到阴影强度值
     float shadow = SampleDirectionalShadowAtlas(positionSTS);
     //考虑光源的阴影强度，strength为0，依然没有阴影
-    return lerp(1.0, shadow, data.strength);
+    return lerp(1.0, shadow, directional.strength);
 }
 
 #endif

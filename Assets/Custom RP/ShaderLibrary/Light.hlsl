@@ -39,6 +39,8 @@ DirectionalShadowData GetDirectionalShadowData(int lightIndex, ShadowData shadow
     data.strength = _DirectionalLightShadowData[lightIndex].x * shadowData.strength;
     //Tile索引
     data.tileIndex = _DirectionalLightShadowData[lightIndex].y + shadowData.cascadeIndex;
+    //法线偏移
+    data.normalBias = _DirectionalLightShadowData[lightIndex].z;
     return data;
 }
 
@@ -52,7 +54,7 @@ Light GetDirectionalLight(int index, Surface surfaceWS, ShadowData shadowData)
     //构造光源阴影信息
     DirectionalShadowData dirShadowData  = GetDirectionalShadowData(index,shadowData);
     //根据片元的强度
-    light.attenuation = GetDirectionalShadowAttenuation(dirShadowData, surfaceWS);
+    light.attenuation = GetDirectionalShadowAttenuation(dirShadowData,shadowData, surfaceWS);
 
     //可视化级联大小，测试
     // light.attenuation = shadowData.cascadeIndex * 0.25;

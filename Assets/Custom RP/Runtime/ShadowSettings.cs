@@ -24,12 +24,20 @@ public class ShadowSettings
         _4096 = 4096,
         _8192 = 8192
     }
+    
+    //PCF采样尺寸
+    public enum FilterMode {
+        PCF2x2, PCF3x3, PCF5x5, PCF7x7
+    }
 
     //定义方向光源的阴影贴图配置
     [System.Serializable]
     public struct Directional
     {
         public TextureSize atlasSize;
+        
+        //PCF Filter
+        public FilterMode filter;
         
         //阴影级联的数量
         [Range(1, 4)]
@@ -50,6 +58,7 @@ public class ShadowSettings
     public Directional directional = new Directional()
     {
         atlasSize = TextureSize._1024,
+        filter = FilterMode.PCF2x2,
         cascadeCount = 4,
         cascadeRatio1 = 0.1f,
         cascadeRatio2 = 0.25f,

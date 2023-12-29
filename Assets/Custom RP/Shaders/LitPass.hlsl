@@ -65,6 +65,15 @@ Varyings LitPassVertex(Attributes input)
     UNITY_TRANSFER_INSTANCE_ID(input,output);
     output.positionWS = TransformObjectToWorld(input.positionOS);
     output.positionCS = TransformWorldToHClip(output.positionWS);
+
+    #if UNITY_REVERSED_Z
+    output.positionCS.z =
+        min(output.positionCS.z, output.positionCS.w * UNITY_NEAR_CLIP_VALUE);
+    #else
+    output.positionCS.z =
+        max(output.positionCS.z, output.positionCS.w * UNITY_NEAR_CLIP_VALUE);
+    #endif
+    
     //使用TransformObjectToWorldNormal将法线从模型空间转换到世界空间，注意不能使用TransformObjectToWorld
     output.normalWS = TransformObjectToWorldNormal(input.normalOS);
     //应用纹理ST变换
