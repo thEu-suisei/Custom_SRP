@@ -116,6 +116,13 @@ float4 LitPassFragment(Varyings input) : SV_TARGET
     float3 color = GetLighting(surface,brdf);
     
     return float4(color,surface.alpha);
+
+
+    
+    // base.rgb = input.normalWS;法线可视化
+    // base.rgb = abs(length(input.normalWS) - 1.0) * 10.0;
+    // base.rgb = normalize(input.normalWS);
 }
+
 
 #endif
