@@ -17,14 +17,15 @@
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/be91ca7e8f3b464890ab1d48b84e94ea174200/60/865b1158/RenderPipelineAsset.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/be91ca7e8f3b464890ab1d48b84e94ea174200/8d/623b2874/DrawingSettings.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/be91ca7e8f3b464890ab1d48b84e94ea174200/9b/eefbb4d1/Light.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/be91ca7e8f3b464890ab1d48b84e94ea174200/ae/9a12898d/Vector3.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/be91ca7e8f3b464890ab1d48b84e94ea174200/c6/30eafe9f/Component.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/f07eb00f18584bbda00d12c92d2ad54394f800/61/c885fc52/LegacyIlluminShaderGUI.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/f07eb00f18584bbda00d12c92d2ad54394f800/bf/5bd3e61a/ShaderGUI.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Assets/Custom RP/Editor/CustomShaderGUI.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Assets/Custom RP/Examples/PerObjectMaterialProperties.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Assets/Custom RP/Runtime/CameraRenderer.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Assets/Custom RP/Runtime/CustomRenderPipeline.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Custom RP/ShaderLibrary/Lighting.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Custom RP/ShaderLibrary/ShadowSettings.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Custom RP/Runtime/LightController.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Library/PackageCache/com.unity.render-pipelines.core@14.0.9/ShaderLibrary/CommonMaterial.hlsl" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Library/PackageCache/com.unity.render-pipelines.core@14.0.9/ShaderLibrary/SpaceTransforms.hlsl" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Library/PackageCache/com.unity.render-pipelines.core@14.0.9/ShaderLibrary/UnityInstancing.hlsl" root0="SKIP_HIGHLIGHTING" />
@@ -123,6 +124,7 @@
       <workItem from="1703484740794" duration="32038000" />
       <workItem from="1703738047937" duration="13697000" />
       <workItem from="1703753756935" duration="3202000" />
+      <workItem from="1704259474224" duration="4820000" />
     </task>
     <servers />
   </component>

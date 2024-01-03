@@ -8,11 +8,11 @@ public class ShadowSettings
     //其具体逻辑猜测如下：
     //1.根据maxDistance（或者摄像机远平面）得到一个BoundingBox，这个BoundingBox（也可能是个球型）容纳了所有要渲染阴影的物体
     //2.根据这个BoundingBox（也可能是个球型）和方向光源的方向，确定渲染阴影贴图用的正交摄像机的视锥体，渲染阴影贴图
+    public bool enableShadow = true;
     [Min(0.001f)] public float maxDistance = 100f;
-    
+
     //用于最远阴影渐变消失变换强度的系数
-    [Range(0.001f, 1f)]
-    public float distanceFade = 0.1f;
+    [Range(0.001f, 1f)] public float distanceFade = 0.1f;
 
     //阴影贴图的所有尺寸，使用枚举防止出现其他数值，范围为256-8192。
     public enum TextureSize
@@ -24,10 +24,14 @@ public class ShadowSettings
         _4096 = 4096,
         _8192 = 8192
     }
-    
+
     //PCF采样尺寸
-    public enum FilterMode {
-        PCF2x2, PCF3x3, PCF5x5, PCF7x7
+    public enum FilterMode
+    {
+        PCF2x2,
+        PCF3x3,
+        PCF5x5,
+        PCF7x7
     }
 
     //定义方向光源的阴影贴图配置
@@ -35,23 +39,20 @@ public class ShadowSettings
     public struct Directional
     {
         public TextureSize atlasSize;
-        
+
         //PCF Filter尺寸
         public FilterMode filter;
-        
+
         //阴影级联的数量
-        [Range(1, 4)]
-        public int cascadeCount;
-        
+        [Range(1, 4)] public int cascadeCount;
+
         //每个级联的的比例
-        [Range(0f, 1f)]
-        public float cascadeRatio1, cascadeRatio2, cascadeRatio3;
+        [Range(0f, 1f)] public float cascadeRatio1, cascadeRatio2, cascadeRatio3;
 
         //使用级联方法调用函数前需要提前打包这些参数
         public Vector3 CascadeRatios => new Vector3(cascadeRatio1, cascadeRatio2, cascadeRatio3);
-    
-        [Range(0.001f, 1f)]
-        public float cascadeFade;
+
+        [Range(0.001f, 1f)] public float cascadeFade;
     }
 
     //创建一个1024大小的Directional Shadow Map

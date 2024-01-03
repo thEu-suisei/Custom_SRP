@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -57,8 +58,9 @@ public class Shadows
 
     //当前已配置完毕的方向光源数
     private int ShadowedDirectionalLightCount;
-    
-    static string[] directionalFilterKeywords = {
+
+    static string[] directionalFilterKeywords =
+    {
         "_DIRECTIONAL_PCF3",
         "_DIRECTIONAL_PCF5",
         "_DIRECTIONAL_PCF7",
@@ -109,15 +111,20 @@ public class Shadows
     //渲染阴影贴图
     public void Render()
     {
-        if (ShadowedDirectionalLightCount > 0)
+        // Debug.Log(settings.enableShadow);
+
+        if (settings.enableShadow)
         {
-            RenderDirectionalShadows();
-        }
-        else
-        {
-            //如果因为某种原因不需要渲染阴影，我们也需要生成一张1x1大小的ShadowAtlas
-            //因为WebGL 2.0下如果某个材质包含ShadowMap但在加载时丢失了ShadowMap会报错
-            buffer.GetTemporaryRT(dirShadowAtlasId, 1, 1, 32, FilterMode.Bilinear, RenderTextureFormat.Shadowmap);
+            if (ShadowedDirectionalLightCount > 0)
+            {
+                RenderDirectionalShadows();
+            }
+            else
+            {
+                //如果因为某种原因不需要渲染阴影，我们也需要生成一张1x1大小的ShadowAtlas
+                //因为WebGL 2.0下如果某个材质包含ShadowMap但在加载时丢失了ShadowMap会报错
+                buffer.GetTemporaryRT(dirShadowAtlasId, 1, 1, 32, FilterMode.Bilinear, RenderTextureFormat.Shadowmap);
+            }
         }
     }
 
@@ -156,7 +163,7 @@ public class Shadows
         buffer.SetGlobalInt(cascadeCountId, settings.directional.cascadeCount);
         buffer.SetGlobalVectorArray(cascadeCullingSpheresId, cascadeCullingSpheres);
         buffer.SetGlobalVectorArray(cascadeDataId, cascadeData);
-        
+
         //传递所有阴影变换矩阵给GPU
         buffer.SetGlobalMatrixArray(dirShadowMatricesId, dirShadowMatrices);
         //传递最大阴影距离，好让GPU在超出范围的阴影自然消失
@@ -169,28 +176,32 @@ public class Shadows
                 1f / settings.distanceFade,
                 1f / (1f - f * f))
         );
-        
+
         //PCF
         //传递向量，x存储atlas大小，y存储texel大小
         SetKeywords();
         buffer.SetGlobalVector(
             shadowAtlasSizeId,
-            new Vector4(atlasSize,1f/atlasSize));
-        
+            new Vector4(atlasSize, 1f / atlasSize));
+
         buffer.EndSample(bufferName);
         ExecuteBuffer();
     }
-    
+
     /// <summary>
     /// 设置PCF关键字
     /// </summary>
-    void SetKeywords () {
+    void SetKeywords()
+    {
         int enabledIndex = (int)settings.directional.filter - 1;
-        for (int i = 0; i < directionalFilterKeywords.Length; i++) {
-            if (i == enabledIndex) {
+        for (int i = 0; i < directionalFilterKeywords.Length; i++)
+        {
+            if (i == enabledIndex)
+            {
                 buffer.EnableShaderKeyword(directionalFilterKeywords[i]);
             }
-            else {
+            else
+            {
                 buffer.DisableShaderKeyword(directionalFilterKeywords[i]);
             }
         }
@@ -221,10 +232,10 @@ public class Shadows
             //使用Unity提供的接口来为方向光源计算出其渲染阴影贴图用的VP矩阵和splitData
             cullingResults.ComputeDirectionalShadowMatricesAndCullingPrimitives(
                 light.visibleLightIndex,
-            i,
+                i,
                 cascadeCount,
                 ratios,
-            tileSize,
+                tileSize,
                 light.nearPlaneOffset,
                 out Matrix4x4 viewMatrix,
                 out Matrix4x4 projectionMatrix,
