@@ -5,16 +5,17 @@ public partial class CameraRenderer
 {
     //定义Command Buffer的名字，FrameDebugger会捕捉到它，由此可见FrameDebugger会以Command Buffer为单位去抓取一帧内的渲染过程
     private const string bufferName = "Render Camera";
+
     //获取ShaderId，用于告诉渲染器我们支持渲染哪些ShaderPasses
-    private static ShaderTagId unlitShaderTagId = new ShaderTagId("SRPDefaultUnlit"), litShaderTagId = new ShaderTagId("CustomLit");
-    
-    
-    
+    private static ShaderTagId unlitShaderTagId = new ShaderTagId("SRPDefaultUnlit"),
+        litShaderTagId = new ShaderTagId("CustomLit");
+
 
     private CommandBuffer buffer = new CommandBuffer()
     {
         name = bufferName
     };
+
     //存放当前渲染上下文
     private ScriptableRenderContext context;
 
@@ -23,26 +24,27 @@ public partial class CameraRenderer
 
     //存放摄像机剔除结果
     private CullingResults cullingResults;
-    
+
     //存放光源处理类
     private Lighting lighting = new Lighting();
 
     //摄像机渲染器的渲染函数，在当前渲染上下文的基础上渲染当前摄像机
     public void Render(ScriptableRenderContext context, Camera camera, bool useDynamicBatching, bool useGPUInstancing
-    , ShadowSettings shadowSettings)
+        , ShadowSettings shadowSettings)
     {
         //设定当前上下文和摄像机
         this.context = context;
         this.camera = camera;
-        
+
         PrepareBuffer();
         PrepareForSceneWindow();
-        
+
         //maxShadowDistance在camera的culling parameters中设置 
         if (!Cull(shadowSettings.maxDistance))
         {
             return;
         }
+
         //在Frame Debugger中将Shadows buffer下的操作囊括到Camera标签下
         buffer.BeginSample(SampleName);
         ExecuteBuffer();
@@ -74,6 +76,7 @@ public partial class CameraRenderer
         //提交CommandBuffer并且清空它，在Setup中做这一步的作用应该是确保在后续给CommandBuffer添加指令之前，其内容是空的。
         ExecuteBuffer();
     }
+
     void DrawVisibleGeometry(bool useDynamicBatching, bool useGPUInstancing)
     {
         //决定物体绘制顺序是正交排序还是基于深度排序的配置
@@ -89,7 +92,7 @@ public partial class CameraRenderer
             enableInstancing = useGPUInstancing
         };
         //增加对Lit.shader的绘制支持,index代表本次DrawRenderer中该pass的绘制优先级（0最先绘制）
-        drawingSettings.SetShaderPassName(1, litShaderTagId);//"LightMode"="CustomLit"
+        drawingSettings.SetShaderPassName(1, litShaderTagId); //"LightMode"="CustomLit"
         //决定过滤哪些Visible Objects的配置，包括支持的RenderQueue等
         var filteringSettings = new FilteringSettings(RenderQueueRange.opaque);
         //渲染CullingResults内不透明的VisibleObjects

@@ -18,6 +18,8 @@ public class Lighting
         dirLightDirectionsId = Shader.PropertyToID("_DirectionalLightDirections"),
         dirLightShadowDataId = Shader.PropertyToID("_DirectionalLightShadowData");
 
+    //dirLightShadowData = ( light.shadowStrength , settings.directional.cascadeCount * ShadowedDirectionalLightCount++ , light.shadowNormalBias , ...)
+    //dirLightShadowData = ( light的阴影强度属性    ,                              cascade索引                             , light.shadowNormalBias , ...)
     private static Vector4[] 
         dirLightColors = new Vector4[maxDirLightCount],
         dirLightDirections = new Vector4[maxDirLightCount],
@@ -75,7 +77,7 @@ public class Lighting
         {
             VisibleLight visibleLight = visibleLights[i];
             
-            //只配置方向光源
+            //按光源类型配置
             if (visibleLight.lightType == LightType.Directional)
             {
                 //设置数组中单个光源的属性

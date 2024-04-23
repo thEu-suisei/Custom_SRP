@@ -20,7 +20,7 @@ MonoBehaviour:
     maxDistance: 40
     distanceFade: 0.5
     directional:
-      atlasSize: 2048
+      atlasSize: 1024
       filter: 3
       cascadeCount: 4
       cascadeRatio1: 0.2

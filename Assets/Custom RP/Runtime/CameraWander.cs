@@ -10,6 +10,13 @@ public class SimpleCameraController : MonoBehaviour
 {
     #region 相机状态
 
+    private Camera ca;
+
+    void ab()
+    {
+        print(ca.transform.localEulerAngles);
+    }
+
     /// <summary>
     /// 相机状态
     /// </summary>
