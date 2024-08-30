@@ -65,6 +65,12 @@ public class Shadows
         "_DIRECTIONAL_PCF5",
         "_DIRECTIONAL_PCF7",
     };
+    
+    static string[] cascadeBlendKeywords =
+    {
+        "_CASCADE_BLEND_SOFT",
+        "_CASCADE_BLEND_DITHER"
+    };
 
     public void Setup(ScriptableRenderContext context, CullingResults cullingResults,
         ShadowSettings settings)
@@ -178,32 +184,38 @@ public class Shadows
                 1f / (1f - f * f))
         );
 
-        //PCF
+        //PCF部分：
+        //设置关键字
+        SetKeywords(directionalFilterKeywords,(int)settings.directional.filter-1);
         //传递向量，x存储atlas大小，y存储texel大小
-        SetKeywords();
         buffer.SetGlobalVector(
             shadowAtlasSizeId,
             new Vector4(atlasSize, 1f / atlasSize));
+        
+        //Cascade部分：
+        //设置关键字
+        SetKeywords(cascadeBlendKeywords,(int)settings.directional.cascadeBlend-1);
 
         buffer.EndSample(bufferName);
         ExecuteBuffer();
     }
 
     /// <summary>
-    /// 设置PCF关键字
+    /// 设置PCF/Cascade关键字
+    /// EnableShaderKeyword(keyword):有点类似在shader中使用#define (keyword)
+    /// 在shader中启用不同的变体：#pragma multi_compile (keyword1) (keyword2) ...
     /// </summary>
-    void SetKeywords()
+    void SetKeywords(string[] keywords,int enabledIndex)
     {
-        int enabledIndex = (int)settings.directional.filter - 1;
-        for (int i = 0; i < directionalFilterKeywords.Length; i++)
+        for (int i = 0; i < keywords.Length; i++)
         {
             if (i == enabledIndex)
             {
-                buffer.EnableShaderKeyword(directionalFilterKeywords[i]);
+                buffer.EnableShaderKeyword(keywords[i]);
             }
             else
             {
-                buffer.DisableShaderKeyword(directionalFilterKeywords[i]);
+                buffer.DisableShaderKeyword(keywords[i]);
             }
         }
     }
@@ -212,7 +224,7 @@ public class Shadows
     /// 渲染单个光源的阴影贴图到ShadowAtlas上
     /// </summary>
     /// <param name="index">光源的索引</param>
-    /// /// <param name="split">分块量（一个方向）</param>
+    /// <param name="split">分块量（一个方向）</param>
     /// <param name="tileSize">该光源在ShadowAtlas上分配的Tile块大小</param>
     void RenderDirectionalShadows(int index, int split, int tileSize)
     {
@@ -228,6 +240,9 @@ public class Shadows
         int tileOffset = index * cascadeCount;
         Vector3 ratios = settings.directional.CascadeRatios;
 
+        //剔除偏差因子
+        float cullingFactor = Mathf.Max(0f, 0.8f - settings.directional.cascadeFade);
+
         for (int i = 0; i < cascadeCount; i++)
         {
             //使用Unity提供的接口来为方向光源计算出其渲染阴影贴图用的VP矩阵和splitData
@@ -241,6 +256,8 @@ public class Shadows
                 out Matrix4x4 viewMatrix,
                 out Matrix4x4 projectionMatrix,
                 out ShadowSplitData splitData);
+            //剔除偏差 Culling Bias
+            splitData.shadowCascadeBlendCullingFactor = cullingFactor;
             //splitData包括投射阴影物体应该如何被裁剪的信息，我们需要把它传递给shadowSettings
             shadowSettings.splitData = splitData;
             if (index == 0)

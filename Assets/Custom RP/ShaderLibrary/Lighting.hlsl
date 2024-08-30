@@ -12,7 +12,7 @@
 float3 IncomingLight(Surface surface, Light light)
 {
     //考虑了阴影带来的光源衰减
-    return saturate(dot(surface.normal, light.direction)) * light.attenuation * light.color;
+    return saturate(dot(surface.normal, light.direction) * light.attenuation) * light.color;
 }
 
 //新增的GetLighting方法，传入surface和light，返回真正的光照计算结果，即物体表面最终反射出的RGB光能量

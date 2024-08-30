@@ -96,6 +96,7 @@ float4 LitPassFragment(Varyings input) : SV_TARGET
     #if defined(_CLIPPING)
     //clip函数的传入参数如果<=0则会丢弃该片元
     clip(base.a - UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _Cutoff));
+    base.a=baseColor.a;
     #endif
 
     //在片元着色器中构建Surface结构体，即物体表面属性，构建完成之后就可以在片元着色器中计算光照
@@ -108,6 +109,7 @@ float4 LitPassFragment(Varyings input) : SV_TARGET
     surface.alpha = base.a;
     surface.metallic = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial,_Metallic);
     surface.smoothness = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial,_Smoothness);
+    surface.dither=InterleavedGradientNoise(input.positionCS.xy,0);
     #if defined(_PREMULTIPLY_ALPHA)
         BRDF brdf = GetBRDF(surface,true);
     #else

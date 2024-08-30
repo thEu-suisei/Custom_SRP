@@ -73,6 +73,7 @@ float4 UnlitPassFragment(Varyings input) : SV_TARGET
     //只有在_CLIPPING关键字启用时编译该段代码
     #if defined(_CLIPPING)
     clip(base.a - UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial,_Cutoff));
+    base.a = baseColor.a;
     #endif
     return base;
 }

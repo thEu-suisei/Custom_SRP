@@ -53,6 +53,18 @@ public class ShadowSettings
         public Vector3 CascadeRatios => new Vector3(cascadeRatio1, cascadeRatio2, cascadeRatio3);
 
         [Range(0.001f, 1f)] public float cascadeFade;
+
+        //Cascade配置与PCF配置不同，定义在Directional内
+        public enum CascadeBlendMode
+        {
+            Hard,
+            //软阴影混合级联需要对两个级联图进行采样，并且再加上PCF的多次采样，效率会比较低
+            Soft,
+            //抖动过度根据概率的方式只需要采样一个级联图，后续可以用AA对棋盘状阴影走样进行处理。
+            Dither
+        }
+
+        public CascadeBlendMode cascadeBlend;
     }
 
     //创建一个1024大小的Directional Shadow Map
@@ -64,6 +76,7 @@ public class ShadowSettings
         cascadeRatio1 = 0.1f,
         cascadeRatio2 = 0.25f,
         cascadeRatio3 = 0.5f,
-        cascadeFade = 0.1f
+        cascadeFade = 0.1f,
+        cascadeBlend = Directional.CascadeBlendMode.Hard
     };
 }

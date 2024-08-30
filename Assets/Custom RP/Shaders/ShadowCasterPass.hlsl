@@ -62,9 +62,12 @@ void ShadowCasterPassFragment(Varyings input)
     float4 base = baseMap * baseColor;
 
     //只有在_CLIPPING关键字启用时编译该段代码
-    #if defined(_CLIPPING)
+    #if defined(_SHADOWS_CLIP)
     //clip函数的传入参数如果<=0则会丢弃该片元
-    clip(base.a - UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _Cutoff));
+        clip(base.a - UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _Cutoff));
+    #elif defined(_SHADOWS_DITHER)
+        float dither = InterleavedGradientNoise(input.positionCS.xy,0);
+        clip(base.a-dither);    
     #endif
     //到这里就结束了，我们不需要返回任何值，其片元深度会写入阴影贴图的DepthBuffer
 }

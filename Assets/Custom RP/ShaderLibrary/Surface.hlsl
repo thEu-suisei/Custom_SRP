@@ -22,7 +22,8 @@ struct Surface
     float smoothness;
     //深度
     float depth;
-
+    //cascade抖动
+    float dither;
 };
 
 #endif
