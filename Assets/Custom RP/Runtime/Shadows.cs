@@ -279,14 +279,15 @@ public class Shadows
             //深度偏移法/斜率偏差
             // buffer.SetGlobalDepthBias(0f, 3f);
 
-            //法线偏移
+            //在渲染阴影贴图前设置depth Bias来消除阴影痤疮,传入bias和slopBias
+            //这里的bias单位应该不是米
             buffer.SetGlobalDepthBias(0f, light.slopeScaleBias);
             ExecuteBuffer();
 
             //使用context.DrawShadows来渲染阴影贴图，其需要传入一个shadowSettings
             context.DrawShadows(ref shadowSettings);
 
-            //深度偏移法/斜率偏差/法线偏移
+            //渲染完阴影贴图后将bias设置回0
             buffer.SetGlobalDepthBias(0f, 0f);
         }
     }
