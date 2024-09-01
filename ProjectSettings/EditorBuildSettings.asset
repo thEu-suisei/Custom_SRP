@@ -6,7 +6,7 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 0
-    path: Assets/Scenes/Directional Shadow.unity
+    path: Assets/Scenes/DirectionalShadowScene.unity
     guid: daa5f8c0f712d934d9d6af3ee85cf9fd
   - enabled: 1
     path: Assets/Scenes/MainScene.unity
