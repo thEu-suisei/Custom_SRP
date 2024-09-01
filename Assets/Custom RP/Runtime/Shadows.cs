@@ -257,7 +257,7 @@ public class Shadows
                 out Matrix4x4 projectionMatrix,
                 out ShadowSplitData splitData);
             //剔除偏差 Culling Bias
-            splitData.shadowCascadeBlendCullingFactor = cullingFactor;
+            // splitData.shadowCascadeBlendCullingFactor = cullingFactor;
             //splitData包括投射阴影物体应该如何被裁剪的信息，我们需要把它传递给shadowSettings
             shadowSettings.splitData = splitData;
             if (index == 0)
