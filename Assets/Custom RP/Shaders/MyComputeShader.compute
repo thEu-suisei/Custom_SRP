@@ -22,7 +22,7 @@ float Time;
 [numthreads(10, 10, 10)]
 void UpdateParticle(uint3 gid : SV_GroupID, uint index : SV_GroupIndex)
 {
-    int pindex = gid.x * 1000 + index;
+    uint pindex = gid.x * 1000 + index;
 
     float x = sin(index);
     float y = sin(index * 1.2f);

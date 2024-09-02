@@ -6,12 +6,17 @@
 
 //uniform value
 CBUFFER_START(UnityPerDraw)
-float4x4 unity_ObjectToWorld;
-float4x4 unity_WorldToObject;
-//在定义（UnityPerDraw）CBuffer时，因为Unity对一组相关数据都归到一个Feature中，即使我们没用到unity_LODFade，
-//我们也需要放到这个CBuffer中来构造一个完整的Feature,如果不加这个unity_LODFade，不能支持SRP Batcher
-float4 unity_LODFade;
-real4 unity_WorldTransformParams;
+    float4x4 unity_ObjectToWorld;
+    float4x4 unity_WorldToObject;
+    //在定义（UnityPerDraw）CBuffer时，因为Unity对一组相关数据都归到一个Feature中，即使我们没用到unity_LODFade，
+    //我们也需要放到这个CBuffer中来构造一个完整的Feature,如果不加这个unity_LODFade，不能支持SRP Batcher
+    float4 unity_LODFade;
+    real4 unity_WorldTransformParams;
+
+    //光照贴图偏移
+    float4 unity_LightmapST;
+    //已被弃用，但如果不添加否则 SRP 批处理程序兼容性可能会中断
+    float4 unity_DynamicLightmapST;
 CBUFFER_END
 
 float4x4 unity_MatrixVP;
