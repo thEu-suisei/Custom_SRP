@@ -3,9 +3,13 @@
 
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/EntityLighting.hlsl"//use it to retrieve the light data.
 
-//LightMap采样
+//Lightmap 贴图和采样器
 TEXTURE2D(unity_Lightmap);
 SAMPLER(samplerunity_Lightmap);
+
+//LightProbeProxyVolume
+TEXTURE3D_FLOAT(unity_ProbeVolumeSH);
+SAMPLER(samplerunity_ProbeVolumeSH);
 
 struct GI
 {
@@ -14,6 +18,7 @@ struct GI
     float3 diffuse;
 };
 
+//LightMap采样，返回采样结果
 float3 SampleLightMap(float2 lightMapUV)
 {
     //EntityLighting.hlsl中的采样函数
@@ -36,10 +41,47 @@ float3 SampleLightMap(float2 lightMapUV)
     #endif
 }
 
-GI GetGI(float2 lightMapUV)
+//LightProbe
+float3 SampleLightProbe(Surface surfaceWS)
+{
+    //如果使用Lightmap方法则返回0
+    #if defined(LIGHTMAP_ON)
+        return 0.0;
+    #else
+        if (unity_ProbeVolumeParams.x)
+        {
+            return SampleProbeVolumeSH4(
+                TEXTURE3D_ARGS(unity_ProbeVolumeSH,samplerunity_ProbeVolumeSH),
+                surfaceWS.position,
+                surfaceWS.normal,
+                unity_ProbeVolumeWorldToObject,
+                unity_ProbeVolumeParams.y,
+                unity_ProbeVolumeParams.z,
+                unity_ProbeVolumeMin.xyz,
+                unity_ProbeVolumeSizeInv.xyz
+                );
+        }
+        else
+        {
+            float4 coefficients[7];
+            coefficients[0] = unity_SHAr;
+            coefficients[1] = unity_SHAg;
+            coefficients[2] = unity_SHAb;
+            coefficients[3] = unity_SHBr;
+            coefficients[4] = unity_SHBg;
+            coefficients[5] = unity_SHBb;
+            coefficients[6] = unity_SHC;
+            //SampleSH9
+            return max(0.0,SampleSH9(coefficients,surfaceWS.normal));
+        }
+    
+    #endif
+}
+
+GI GetGI(float2 lightMapUV,Surface surfaceWS)
 {
     GI gi;
-    gi.diffuse = SampleLightMap(lightMapUV);
+    gi.diffuse = SampleLightMap(lightMapUV)+SampleLightProbe(surfaceWS);
     return gi;
 }
 
