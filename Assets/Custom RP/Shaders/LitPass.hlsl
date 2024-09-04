@@ -83,7 +83,8 @@ Varyings LitPassVertex(Attributes input)
     //使用TransformObjectToWorldNormal将法线从模型空间转换到世界空间，注意不能使用TransformObjectToWorld
     output.normalWS = TransformObjectToWorldNormal(input.normalOS);
     //应用纹理ST变换
-    output.baseUV = TransformBaseUV(input.baseUV);
+    // output.baseUV = TransformBaseUV(input.baseUV);
+    output.baseUV = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _BaseMap_ST).zw;
     return output;
 }
 
@@ -122,9 +123,8 @@ float4 LitPassFragment(Varyings input) : SV_TARGET
     float3 color = GetLighting(surface,brdf,gi);
     
     return float4(color,surface.alpha);
-
-
     
+    // return float4(input.baseUV,0,1);//UV可视化
     // base.rgb = input.normalWS;法线可视化
     // base.rgb = abs(length(input.normalWS) - 1.0) * 10.0;
     // base.rgb = normalize(input.normalWS);

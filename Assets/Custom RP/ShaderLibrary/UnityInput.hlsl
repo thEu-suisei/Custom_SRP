@@ -37,6 +37,13 @@ CBUFFER_START(UnityPerDraw)
     float4x4 unity_ProbeVolumeWorldToObject;
     float4 unity_ProbeVolumeSizeInv;
     float4 unity_ProbeVolumeMin;
+
+    //MetaPass
+    //元通道可用于生成不同的数据。请求的内容通过bool4 unity_MetaFragmentControl标志向量进行传达。
+    bool4 unity_MetaFragmentControl;
+    float unity_OneOverOutputBoost;
+    float unity_MaxOutputValue;
+
 CBUFFER_END
 
 float4x4 unity_MatrixVP;
