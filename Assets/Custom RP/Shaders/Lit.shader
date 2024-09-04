@@ -34,6 +34,10 @@ Shader "Custom RP/Lit"
 
     SubShader
     {
+        HLSLINCLUDE
+        #include "../ShaderLibrary/Common.hlsl"
+        #include "LitInput.hlsl"
+        ENDHLSL
         Pass
         {
             //设置Pass Tags，最关键的Tag为"LightMode"
@@ -92,6 +96,26 @@ Shader "Custom RP/Lit"
             #include "ShadowCasterPass.hlsl"
             ENDHLSL
         }
+
+        //Meta Pass 用于烘焙而非运行时的pass
+        Pass 
+        {
+            Name "Meta"
+            Tags
+            {
+                "LightMode" = "Meta"
+            }
+
+            //Cull Off/Front/Cull Back，不剔除/正面剔除/背面剔除
+			Cull Off
+
+			HLSLPROGRAM
+			#pragma target 3.5
+			#pragma vertex MetaPassVertex
+			#pragma fragment MetaPassFragment
+			#include "MetaPass.hlsl"
+			ENDHLSL
+		}
     }
 
     //告诉Unity编辑器使用CustomShaderGUI类的一个实例来为使用Lit.shader的材质绘制Inspector窗口

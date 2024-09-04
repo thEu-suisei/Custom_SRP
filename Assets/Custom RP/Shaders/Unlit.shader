@@ -35,6 +35,11 @@ Shader "Custom RP/Unlit"
     //SubShader的组成是一到多个Pass（通道）
     SubShader
     {
+        HLSLINCLUDE
+		#include "../ShaderLibrary/Common.hlsl"
+		#include "UnlitInput.hlsl"
+		ENDHLSL
+
         //Pass是Shader对象的基本元素，它包含设置GPU状态的指令，以及在GPU上运行的着色器程序。
         Pass
         {
