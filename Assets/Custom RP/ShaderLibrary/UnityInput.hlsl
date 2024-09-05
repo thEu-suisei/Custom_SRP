@@ -40,8 +40,12 @@ CBUFFER_START(UnityPerDraw)
 
     //MetaPass
     //元通道可用于生成不同的数据。请求的内容通过bool4 unity_MetaFragmentControl标志向量进行传达。
+    //如果下面分量为true则MetaFragment控制输出的信息有：
+    //x：控制反照率（Albedo）信息的输出；y：控制自发光（Emission）信息的输出；z：通常与透明度相关；w：制是否启用双面渲染。
     bool4 unity_MetaFragmentControl;
+    //unity_OneOverOutputBoost 通常是 HDR 输出增益（boost）的倒数，用来在着色器中反向缩放输出颜色值，确保最终输出符合所期望的亮度范围。
     float unity_OneOverOutputBoost;
+    //unity_MaxOutputValue 用来限制或控制在 HDR 渲染模式下的最大输出颜色值。
     float unity_MaxOutputValue;
 
 CBUFFER_END

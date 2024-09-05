@@ -13,7 +13,7 @@ Shader "Custom RP/Unlit"
     {
         //"white"为默认纯白贴图，{}在很久之前用于纹理的设置
         _BaseMap("Texture", 2D) = "white"{}
-        _BaseColor("Color",Color) = (1.0,1.0,1.0,1.0)
+        [HDR]_BaseColor("Color",Color) = (1.0,1.0,1.0,1.0)
         _Cutoff ("Alpha Cutoff", Range(0.0, 1.0)) = 0.5
         //Clip函数会使一些GPU优化失效，我们不希望所有使用Unlit.shader的着色器都包含Clip函数，
         //因为很多材质用不到AlphaTest，因此，我们选择使用Shader关键字Toggle来控制Shader变体的编译。

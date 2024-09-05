@@ -19,7 +19,10 @@ public class CustomShaderGUI : ShaderGUI
 
     enum ShadowMode
     {
-        On,Clip,Dither,Off
+        On,
+        Clip,
+        Dither,
+        Off
     }
 
     public override void OnGUI(MaterialEditor materialEditor, MaterialProperty[] properties)
@@ -31,6 +34,8 @@ public class CustomShaderGUI : ShaderGUI
         editor = materialEditor;
         materials = materialEditor.targets;
         this.properties = properties;
+
+        BakeEmission();
 
         //增加一行空行
         EditorGUILayout.Space();
@@ -48,6 +53,22 @@ public class CustomShaderGUI : ShaderGUI
         if (EditorGUI.EndChangeCheck())
         {
             SetShadowCasterPass();
+        }
+    }
+
+    void BakeEmission()
+    {
+        //Unity不会自动烘焙Emission，需要手动启用
+        EditorGUI.BeginChangeCheck();
+        //显示Global Illumination下拉菜单，只会控制unity_MetaFragmentControl.y
+        editor.LightmapEmissionProperty();
+        if (EditorGUI.EndChangeCheck())
+        {
+            foreach (Material m in editor.targets)
+            {
+                m.globalIlluminationFlags &=
+                    ~MaterialGlobalIlluminationFlags.EmissiveIsBlack;
+            }
         }
     }
 
@@ -104,7 +125,7 @@ public class CustomShaderGUI : ShaderGUI
             SetKeyword(keyword, value);
         }
     }
-    
+
     /// <summary>
     /// 该函数判断当前材质是否包含该属性
     /// </summary>
@@ -219,7 +240,7 @@ public class CustomShaderGUI : ShaderGUI
     /// </summary>
     void TransparentPreset()
     {
-        if (HasPremultiplyAlpha&&PresetButton("Transparent"))
+        if (HasPremultiplyAlpha && PresetButton("Transparent"))
         {
             Clipping = false;
             PremultiplyAlpha = true;
@@ -234,7 +255,7 @@ public class CustomShaderGUI : ShaderGUI
     {
         set
         {
-            if (SetProperty("_Shadows",(float)value))
+            if (SetProperty("_Shadows", (float)value))
             {
                 SetKeyword("_SHADOWS_CLIP", value == ShadowMode.Clip);
                 SetKeyword("_SHADOWS_DITHER", value == ShadowMode.Dither);
@@ -244,17 +265,18 @@ public class CustomShaderGUI : ShaderGUI
 
     void SetShadowCasterPass()
     {
-        MaterialProperty shadows = FindProperty("_Shadows", properties,false);
+        MaterialProperty shadows = FindProperty("_Shadows", properties, false);
         //如果没有模式或混合模式，则中止
         if (shadows == null || shadows.hasMixedValue)
         {
             return;
         }
+
         //否则，启用或禁用ShadowCaster
         bool enabled = shadows.floatValue < (float)ShadowMode.Off;
         foreach (Material m in materials)
         {
-            m.SetShaderPassEnabled("ShadowCaster",enabled);
+            m.SetShaderPassEnabled("ShadowCaster", enabled);
         }
     }
 }

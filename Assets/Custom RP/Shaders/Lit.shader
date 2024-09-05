@@ -19,6 +19,11 @@ Shader "Custom RP/Lit"
         _Metallic("Metallic",Range(0,1)) = 0
         //光滑度
         _Smoothness("Smoothness",Range(0,1)) = 0.5
+        
+        //Emission自发光
+        [NoScaleOffset] _EmissionMap("Emission", 2D) = "white" {}
+		[HDR] _EmissionColor("Emission", Color) = (0.0, 0.0, 0.0, 0.0)
+        
         //Premultiply Alpha的关键字
         [Toggle(_PREMULTIPLY_ALPHA)]_PremulAlpha("Premultiply Alpha",Float) = 0
 
@@ -30,6 +35,7 @@ Shader "Custom RP/Lit"
         [Enum(Off,0,On,1)] _ZWrite("Z Write",Float) = 1
         //接受阴影，选择让表面是否接受阴影
         [Toggle(_RECEIVE_SHADOWS)] _ReceiveShadows ("Receive Shadows", Float) = 1
+        
     }
 
     SubShader

@@ -84,7 +84,7 @@ Varyings LitPassVertex(Attributes input)
     output.normalWS = TransformObjectToWorldNormal(input.normalOS);
     //应用纹理ST变换
     // output.baseUV = TransformBaseUV(input.baseUV);
-    output.baseUV = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _BaseMap_ST).zw;
+    output.baseUV = TransformBaseUV(input.baseUV);
     return output;
 }
 
@@ -121,11 +121,19 @@ float4 LitPassFragment(Varyings input) : SV_TARGET
 
     GI gi = GetGI(GI_FRAGMENT_DATA(input),surface);
     float3 color = GetLighting(surface,brdf,gi);
+
+    //Emission
+    color += GetEmission(input.baseUV);
     
     return float4(color,surface.alpha);
+
+    //UV可视化
+    // return float4(input.baseUV,0,1);
     
-    // return float4(input.baseUV,0,1);//UV可视化
-    // base.rgb = input.normalWS;法线可视化
+    //法线可视化
+    // return float4(input.normalWS,1);
+    
+    //法线插值可视化
     // base.rgb = abs(length(input.normalWS) - 1.0) * 10.0;
     // base.rgb = normalize(input.normalWS);
 }
