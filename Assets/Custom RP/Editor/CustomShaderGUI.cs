@@ -53,6 +53,32 @@ public class CustomShaderGUI : ShaderGUI
         if (EditorGUI.EndChangeCheck())
         {
             SetShadowCasterPass();
+            CopyLightMappingProperties(); //烘焙透明物体，硬编码属性拷贝
+        }
+    }
+
+    //@这里的透明材质烘焙没有成功，Catlike:5.6
+    void CopyLightMappingProperties()
+    {
+        //Unity会自己对每个材质判断其属于Opaque、Clip、Transparency，对于Clip和Transparency的材质，
+        //Unity会自动捕捉材质中名为"_MainTex"的纹理与名为"_Color"的颜色，并让两者相乘得到alpha值，
+        //再捕捉材质中名为"_Cutoff"的float值来进行Clip操作。
+
+        //要实现透明材质的烘培，只需要维护好材质的_MainTex、_Color、_Cutoff三个属性
+        MaterialProperty mainTex = FindProperty("_MainTex", properties, false);
+        MaterialProperty baseMap = FindProperty("_BaseMap", properties, false);
+        if (mainTex != null && baseMap != null)
+        {
+            mainTex.textureValue = baseMap.textureValue;
+            mainTex.textureScaleAndOffset = baseMap.textureScaleAndOffset;
+        }
+
+        MaterialProperty color = FindProperty("_Color", properties, false);
+        MaterialProperty baseColor =
+            FindProperty("_BaseColor", properties, false);
+        if (color != null && baseColor != null)
+        {
+            color.colorValue = baseColor.colorValue;
         }
     }
 

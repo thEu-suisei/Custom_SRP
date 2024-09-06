@@ -36,6 +36,9 @@ Shader "Custom RP/Lit"
         //接受阴影，选择让表面是否接受阴影
         [Toggle(_RECEIVE_SHADOWS)] _ReceiveShadows ("Receive Shadows", Float) = 1
         
+        //烘焙透明物体，需要用到硬编码属性
+        [HideInInspector] _MainTex("Texture for Lightmap", 2D) = "white" {}
+		[HideInInspector] _Color("Color for Lightmap", Color) = (0.5, 0.5, 0.5, 1.0)
     }
 
     SubShader
