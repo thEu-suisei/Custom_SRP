@@ -54,7 +54,9 @@ public class MeshBall : MonoBehaviour
             block.SetVectorArray(baseColorId, baseColors);
             block.SetFloatArray(metallicId, metallic);
             block.SetFloatArray(smoothnessId, smoothness);
-
+            
+            //对于每个实例，计算一个球谐函数并传递给GPU的成本比较大，我们可以使用一个LPPV，
+            //让所有实例都共用这一个LPPV。这有两个好处，一是优化了性能，二是在实例位置移动时，不需要重新计算Probes。
             if (!lightProbeVolume)
             {
                 var positions = new Vector3[1023];

@@ -7,6 +7,7 @@
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary//Shadow/ShadowSamplingTent.hlsl"//定义了不同filterMode的filter大小和采样设置
 
 
+
 #if defined(_DIRECTIONAL_PCF3)
     #define DIRECTIONAL_FILTER_SAMPLES 4
     #define DIRECTIONAL_FILTER_SETUP SampleShadow_ComputeSamples_Tent_3x3
@@ -50,6 +51,14 @@ struct DirectionalShadowData
     float normalBias;
 };
 
+//ShadowMask Data
+//shader需要知道是否正在使用shadowmask，如果使用则需要知道烘焙的阴影是是什么
+struct ShadowMask
+{
+    bool distance;
+    float4 shadows;
+};
+
 struct ShadowData
 {
     int cascadeIndex;
@@ -57,6 +66,7 @@ struct ShadowData
     float cascadeBlend;
     //默认设置为1，如果我们结束了最后一个级联，设置为零。
     float strength;
+    ShadowMask shadowMask;
 };
 
 //阴影自然消失强度函数
@@ -69,6 +79,8 @@ float FadedShadowStrength(float distance, float scale, float fade)
 ShadowData GetShadowData(Surface surfaceWS)
 {
     ShadowData data;
+    data.shadowMask.distance = false;
+    data.shadowMask.shadows = 1.0;
     data.cascadeBlend = 1.0;
     //如果表面超出最大阴影深度，那么开始自然消失；
     data.strength = FadedShadowStrength(
@@ -86,16 +98,18 @@ ShadowData GetShadowData(Surface surfaceWS)
             float fade = FadedShadowStrength(
                 distanceSqr, _CascadeData[i].x, _ShadowDistanceFade.z
             );
-            if (i == _CascadeCount - 1) {
+            if (i == _CascadeCount - 1)
+            {
                 data.strength *= fade;
             }
-            else {
+            else
+            {
                 data.cascadeBlend = fade;
             }
             break;
         }
     }
-    
+
     if (i == _CascadeCount)
     {
         data.strength = 0.0;
@@ -108,11 +122,11 @@ ShadowData GetShadowData(Surface surfaceWS)
     }
     #endif
     #if !defined(_CASCADE_BLEND_SOFT)
-        data.cascadeBlend=1.0;
+    data.cascadeBlend = 1.0;
     #endif
-    
+
     data.cascadeIndex = i;
-    
+
     return data;
 }
 
@@ -153,7 +167,7 @@ float GetDirectionalShadowAttenuation(
     Surface surfaceWS)
 {
     #if !defined(_RECEIVE_SHADOWS)
-        return 1.0;
+    return 1.0;
     #endif
     //忽略不开启阴影和阴影强度为0的光源
     if (directional.strength <= 0.0)
@@ -170,8 +184,9 @@ float GetDirectionalShadowAttenuation(
     // float shadow = SampleDirectionalShadowAtlas(positionSTS);//硬阴影
     float shadow = FilterDirectionalShadow(positionSTS);
 
-    
-    if (global.cascadeBlend < 1.0) {
+
+    if (global.cascadeBlend < 1.0)
+    {
         normalBias = surfaceWS.normal *
             (directional.normalBias * _CascadeData[global.cascadeIndex + 1].y);
         positionSTS = mul(
@@ -182,7 +197,7 @@ float GetDirectionalShadowAttenuation(
             FilterDirectionalShadow(positionSTS), shadow, global.cascadeBlend
         );
     }
-    
+
     //考虑光源的阴影强度，strength为0，依然没有阴影
     return lerp(1.0, shadow, directional.strength);
 }

@@ -65,12 +65,20 @@ public class Shadows
         "_DIRECTIONAL_PCF5",
         "_DIRECTIONAL_PCF7",
     };
-    
+
     static string[] cascadeBlendKeywords =
     {
         "_CASCADE_BLEND_SOFT",
         "_CASCADE_BLEND_DITHER"
     };
+
+    private static string[] shadowMaskKeywords =
+    {
+        "_SHADOW_MASK_DISTANCE"
+    };
+
+    //用来追踪是否使用shadowMask
+    private bool useShadowMask;
 
     public void Setup(ScriptableRenderContext context, CullingResults cullingResults,
         ShadowSettings settings)
@@ -80,6 +88,7 @@ public class Shadows
         this.settings = settings;
         //每帧初始时ShadowedDirectionalLightCount为0，在配置每个光源时其+1
         ShadowedDirectionalLightCount = 0;
+        useShadowMask = false;
     }
 
     void ExecuteBuffer()
@@ -99,6 +108,17 @@ public class Shadows
             light.shadowStrength > 0f
             && cullingResults.GetShadowCasterBounds(visibleLightIndex, out Bounds b))
         {
+            //获取烘焙信息
+            LightBakingOutput lightBaking = light.bakingOutput;
+            //检查光照烘焙模式，并更改对应设置
+            if (
+                lightBaking.lightmapBakeType == LightmapBakeType.Mixed &&
+                lightBaking.mixedLightingMode == MixedLightingMode.Shadowmask
+            )
+            {
+                useShadowMask = true;
+            }
+
             ShadowedDirectionalLights[ShadowedDirectionalLightCount] = new ShadowedDirectionalLight()
             {
                 visibleLightIndex = visibleLightIndex,
@@ -132,6 +152,11 @@ public class Shadows
                 buffer.GetTemporaryRT(dirShadowAtlasId, 1, 1, 32, FilterMode.Bilinear, RenderTextureFormat.Shadowmap);
             }
         }
+
+        buffer.BeginSample(bufferName);
+        SetKeywords(shadowMaskKeywords, useShadowMask ? 0 : -1);
+        buffer.EndSample(bufferName);
+        ExecuteBuffer();
     }
 
     //渲染方向光源的Shadow Map到ShadowAtlas上
@@ -186,15 +211,15 @@ public class Shadows
 
         //PCF部分：
         //设置关键字
-        SetKeywords(directionalFilterKeywords,(int)settings.directional.filter-1);
+        SetKeywords(directionalFilterKeywords, (int)settings.directional.filter - 1);
         //传递向量，x存储atlas大小，y存储texel大小
         buffer.SetGlobalVector(
             shadowAtlasSizeId,
             new Vector4(atlasSize, 1f / atlasSize));
-        
+
         //Cascade部分：
         //设置关键字
-        SetKeywords(cascadeBlendKeywords,(int)settings.directional.cascadeBlend-1);
+        SetKeywords(cascadeBlendKeywords, (int)settings.directional.cascadeBlend - 1);
 
         buffer.EndSample(bufferName);
         ExecuteBuffer();
@@ -205,7 +230,7 @@ public class Shadows
     /// EnableShaderKeyword(keyword):有点类似在shader中使用#define (keyword)
     /// 在shader中启用不同的变体：#pragma multi_compile (keyword1) (keyword2) ...
     /// </summary>
-    void SetKeywords(string[] keywords,int enabledIndex)
+    void SetKeywords(string[] keywords, int enabledIndex)
     {
         for (int i = 0; i < keywords.Length; i++)
         {

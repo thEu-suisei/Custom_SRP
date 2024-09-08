@@ -3,9 +3,14 @@
 
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/EntityLighting.hlsl"//use it to retrieve the light data.
 
+
 //Lightmap 贴图和采样器
 TEXTURE2D(unity_Lightmap);
 SAMPLER(samplerunity_Lightmap);
+
+//ShadowMask 贴图和采样器
+TEXTURE2D(unity_ShadowMask);
+SAMPLER(samplerunity_ShadowMask);
 
 //LightProbeProxyVolume
 TEXTURE3D_FLOAT(unity_ProbeVolumeSH);
@@ -16,6 +21,7 @@ struct GI
     //间接光来自所有方向，因此只能用于漫反射照明，不能用于镜面反射。
     //镜面环境反射通常通过反射探针提供，屏幕空间反射是另一种选择。
     float3 diffuse;
+    ShadowMask shadowMask;
 };
 
 //LightMap采样，返回采样结果
@@ -29,15 +35,15 @@ float3 SampleLightMap(float2 lightMapUV)
             samplerunity_Lightmap),
             lightMapUV,
             float4(1.0, 1.0, 0.0, 0.0),
-            #if defined(UNITY_LIGHTMAP_FULL_HDR)
+    #if defined(UNITY_LIGHTMAP_FULL_HDR)
                 false,
-            #else
+    #else
                 true,
-            #endif
+    #endif
             float4(LIGHTMAP_HDR_MULTIPLIER,LIGHTMAP_HDR_EXPONENT,0.0,0.0)
             );
     #else
-        return 0.0;
+    return 0.0;
     #endif
 }
 
@@ -48,40 +54,56 @@ float3 SampleLightProbe(Surface surfaceWS)
     #if defined(LIGHTMAP_ON)
         return 0.0;
     #else
-        if (unity_ProbeVolumeParams.x)
-        {
-            return SampleProbeVolumeSH4(
-                TEXTURE3D_ARGS(unity_ProbeVolumeSH,samplerunity_ProbeVolumeSH),
-                surfaceWS.position,
-                surfaceWS.normal,
-                unity_ProbeVolumeWorldToObject,
-                unity_ProbeVolumeParams.y,
-                unity_ProbeVolumeParams.z,
-                unity_ProbeVolumeMin.xyz,
-                unity_ProbeVolumeSizeInv.xyz
-                );
-        }
-        else
-        {
-            float4 coefficients[7];
-            coefficients[0] = unity_SHAr;
-            coefficients[1] = unity_SHAg;
-            coefficients[2] = unity_SHAb;
-            coefficients[3] = unity_SHBr;
-            coefficients[4] = unity_SHBg;
-            coefficients[5] = unity_SHBb;
-            coefficients[6] = unity_SHC;
-            //SampleSH9
-            return max(0.0,SampleSH9(coefficients,surfaceWS.normal));
-        }
-    
+    if (unity_ProbeVolumeParams.x)
+    {
+        return SampleProbeVolumeSH4(
+            TEXTURE3D_ARGS(unity_ProbeVolumeSH, samplerunity_ProbeVolumeSH),
+            surfaceWS.position,
+            surfaceWS.normal,
+            unity_ProbeVolumeWorldToObject,
+            unity_ProbeVolumeParams.y,
+            unity_ProbeVolumeParams.z,
+            unity_ProbeVolumeMin.xyz,
+            unity_ProbeVolumeSizeInv.xyz
+        );
+    }
+    else
+    {
+        float4 coefficients[7];
+        coefficients[0] = unity_SHAr;
+        coefficients[1] = unity_SHAg;
+        coefficients[2] = unity_SHAb;
+        coefficients[3] = unity_SHBr;
+        coefficients[4] = unity_SHBg;
+        coefficients[5] = unity_SHBb;
+        coefficients[6] = unity_SHC;
+        //SampleSH9
+        return max(0.0, SampleSH9(coefficients, surfaceWS.normal));
+    }
+
     #endif
 }
 
-GI GetGI(float2 lightMapUV,Surface surfaceWS)
+float4 SampleBakedShadows(float2 lightMapUV)
+{
+    #if defined(LIGHTMAP_ON)
+        return SAMPLE_TEXTURE2D(unity_ShadowMask, samplerunity_ShadowMask, lightMapUV);
+    #else
+        return 1.0;
+    #endif
+}
+
+GI GetGI(float2 lightMapUV, Surface surfaceWS)
 {
     GI gi;
-    gi.diffuse = SampleLightMap(lightMapUV)+SampleLightProbe(surfaceWS);
+    gi.diffuse = SampleLightMap(lightMapUV) + SampleLightProbe(surfaceWS);
+    gi.shadowMask.distance = false;
+    gi.shadowMask.shadows = 1.0;
+    
+    #if defined(_SHADOW_MASK_DISTANCE)
+        gi.shadowMask.distance = true;//这会使distance成为编译时常量，因此它的使用不会导致动态分支。
+        gi.shadowMask.shadows = SampleBakedShadows(lightMapUV);
+    #endif
     return gi;
 }
 
