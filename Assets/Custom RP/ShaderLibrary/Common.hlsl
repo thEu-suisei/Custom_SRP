@@ -14,6 +14,12 @@
 
 //UnityInstancing.hlsl重新定义了一些宏用于访问实例化数据数组
 #include "UnityInput.hlsl"
+
+//防止UnityInstancing失效
+#if defined(_SHADOW_MASK_DISTANCE)
+    #define SHADOWS_SHADOWMASK
+#endif
+
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/UnityInstancing.hlsl"
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/SpaceTransforms.hlsl"
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/CommonMaterial.hlsl"

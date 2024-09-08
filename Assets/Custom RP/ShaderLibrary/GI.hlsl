@@ -4,6 +4,7 @@
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/EntityLighting.hlsl"//use it to retrieve the light data.
 
 
+
 //Lightmap 贴图和采样器
 TEXTURE2D(unity_Lightmap);
 SAMPLER(samplerunity_Lightmap);
@@ -84,12 +85,25 @@ float3 SampleLightProbe(Surface surfaceWS)
     #endif
 }
 
-float4 SampleBakedShadows(float2 lightMapUV)
+float4 SampleBakedShadows(float2 lightMapUV, Surface surfaceWS)
 {
     #if defined(LIGHTMAP_ON)
         return SAMPLE_TEXTURE2D(unity_ShadowMask, samplerunity_ShadowMask, lightMapUV);
     #else
-        return 1.0;
+        if (unity_ProbeVolumeParams.x)
+        {
+            //ShadowMask LPPV
+            return SampleProbeOcclusion(
+                TEXTURE3D_ARGS(unity_ProbeVolumeSH, samplerunity_ProbeVolumeSH),
+                surfaceWS.position, unity_ProbeVolumeWorldToObject,
+                unity_ProbeVolumeParams.y, unity_ProbeVolumeParams.z,
+                unity_ProbeVolumeMin.xyz, unity_ProbeVolumeSizeInv.xyz
+            );
+        }
+        else
+        {
+            return unity_ProbesOcclusion;
+        }
     #endif
 }
 
@@ -99,10 +113,10 @@ GI GetGI(float2 lightMapUV, Surface surfaceWS)
     gi.diffuse = SampleLightMap(lightMapUV) + SampleLightProbe(surfaceWS);
     gi.shadowMask.distance = false;
     gi.shadowMask.shadows = 1.0;
-    
+
     #if defined(_SHADOW_MASK_DISTANCE)
         gi.shadowMask.distance = true;//这会使distance成为编译时常量，因此它的使用不会导致动态分支。
-        gi.shadowMask.shadows = SampleBakedShadows(lightMapUV);
+        gi.shadowMask.shadows = SampleBakedShadows(lightMapUV,surfaceWS);
     #endif
     return gi;
 }

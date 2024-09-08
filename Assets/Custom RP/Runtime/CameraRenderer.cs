@@ -93,9 +93,12 @@ public partial class CameraRenderer
             //为每个数据对象属性设置为光照贴图   和   光照探针
             //perObjectData是一个枚举类型，用一串二进制数来存储，比如lightmaps=1,LightProbeProxyVolume=4,lightProbe=8，|运算可以得到 0...01101(2)
             perObjectData =
-                PerObjectData.Lightmaps | PerObjectData.ShadowMask |
+                PerObjectData.Lightmaps |
+                PerObjectData.ShadowMask |
                 PerObjectData.LightProbe |
-                PerObjectData.LightProbeProxyVolume
+                PerObjectData.LightProbeProxyVolume |
+                PerObjectData.OcclusionProbe |
+                PerObjectData.OcclusionProbeProxyVolume
         };
         //增加对Lit.shader的绘制支持,index代表本次DrawRenderer中该pass的绘制优先级（0最先绘制）
         drawingSettings.SetShaderPassName(1, litShaderTagId); //"LightMode"="CustomLit"

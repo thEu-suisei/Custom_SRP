@@ -26,7 +26,6 @@ float3 GetLighting(Surface surfaceWS, BRDF brdf , GI gi)
 {
     ShadowData shadowData = GetShadowData(surfaceWS);
     shadowData.shadowMask = gi.shadowMask;
-    return gi.shadowMask.shadows.rbg;
     //使用循环，累积所有有效方向光源的光照计算结果
     float3 color = gi.diffuse * brdf.diffuse;
     for (int i = 0; i < GetDirectionalLightCount(); i++)

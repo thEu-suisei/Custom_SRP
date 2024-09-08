@@ -20,6 +20,8 @@ CBUFFER_START(UnityPerDraw)
     float4 unity_LightmapST;
     //已被弃用，但如果不添加否则 SRP 批处理程序兼容性可能会中断
     float4 unity_DynamicLightmapST;
+    //unity会将shadowmask烘焙到light probe中
+    float4 unity_ProbesOcclusion;
 
     //LightProbe
     //线性插值后得到的当前点的radiance SH系数，
