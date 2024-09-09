@@ -35,8 +35,8 @@ int GetDirectionalLightCount()
 DirectionalShadowData GetDirectionalShadowData(int lightIndex, ShadowData shadowData)
 {
     DirectionalShadowData data;
-    //阴影强度
-    data.strength = _DirectionalLightShadowData[lightIndex].x * shadowData.strength;
+    //阴影强度，从Shadow.cs GetXXXShadowAttenuation()计算
+    data.strength = _DirectionalLightShadowData[lightIndex].x; //* shadowData.strength;
     //Tile索引
     data.tileIndex = _DirectionalLightShadowData[lightIndex].y + shadowData.cascadeIndex;
     //法线偏移

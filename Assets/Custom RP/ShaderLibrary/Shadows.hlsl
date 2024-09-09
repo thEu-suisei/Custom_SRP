@@ -161,6 +161,7 @@ float FilterDirectionalShadow(float3 positionSTS)
     #endif
 }
 
+//GetShadowAttenuation()→
 //计算阴影衰减值，返回值[0,1]，0代表阴影衰减最大（片元完全在阴影中），1代表阴影衰减最少，片元完全被光照射。而[0,1]的中间值代表片元有一部分在阴影中
 float GetCascadedShadow(
     DirectionalShadowData directional,
@@ -195,28 +196,32 @@ float GetCascadedShadow(
     return shadow;
 }
 
+//GetShadowAttenuation()→
 float GetBakedShadow(ShadowMask mask)
 {
     float shadow = 1.0;
-    if(mask.distance)
+    if (mask.distance)
     {
         shadow = mask.shadows.r;
     }
     return shadow;
 }
 
+//GetShadowAttenuation()→
 //将烘焙阴影和实时阴影混合
-float MixBakedAndRealtimeShadows(ShadowData global,float shadow,float strength)
+float MixBakedAndRealtimeShadows(ShadowData global, float shadow, float strength)
 {
     float baked = GetBakedShadow(global.shadowMask);
-    if(global.shadowMask.distance)
+    if (global.shadowMask.distance)
     {
-        shadow=baked;
+        shadow = lerp(baked, shadow, global.strength);
+        return lerp(1.0, shadow, strength);
     }
-    return lerp(1.0,shadow,strength);
+    return lerp(1.0, shadow, strength * global.strength);
 }
 
-//计算阴影衰减值，返回值[0,1]，0代表阴影衰减最大（片元完全在阴影中），1代表阴影衰减最少，片元完全被光照射。而[0,1]的中间值代表片元有一部分在阴影中
+//计算阴影衰减值
+//返回值[0,1]，0代表阴影衰减最大（片元完全在阴影中），1代表阴影衰减最少，片元完全被光照射。而[0,1]的中间值代表片元有一部分在阴影中
 float GetDirectionalShadowAttenuation(
     DirectionalShadowData directional,
     ShadowData global,
@@ -233,8 +238,8 @@ float GetDirectionalShadowAttenuation(
     }
     else
     {
-        shadow = GetCascadedShadow(directional,global,surfaceWS);
-        shadow = MixBakedAndRealtimeShadows(global,shadow,directional.strength);
+        shadow = GetCascadedShadow(directional, global, surfaceWS);
+        shadow = MixBakedAndRealtimeShadows(global, shadow, directional.strength);
     }
 
     //考虑光源的阴影强度，strength为0，依然没有阴影
