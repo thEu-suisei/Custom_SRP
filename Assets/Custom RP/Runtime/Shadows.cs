@@ -98,7 +98,7 @@ public class Shadows
     }
 
     //每帧执行，用于为light配置shadow altas（shadowMap）上预留一片空间来渲染阴影贴图，同时存储一些其他必要信息
-    //返回每个光源的阴影强度和索引，传递给GPU存储到Light结构体
+    //返回每个光源的[light shadow strength, Cascade Index, light shadow normalBias]，传递给GPU存储到Light结构体
     public Vector3 ReserveDirectionalShadows(Light light, int visibleLightIndex)
     {
         //配置光源数不超过最大值
@@ -106,7 +106,9 @@ public class Shadows
         //忽略不需要渲染任何阴影的光源（通过cullingResults.GetShadowCasterBounds方法）
         if (ShadowedDirectionalLightCount < maxShadowedDirectionalLightCount && light.shadows != LightShadows.None &&
             light.shadowStrength > 0f
-            && cullingResults.GetShadowCasterBounds(visibleLightIndex, out Bounds b))
+            //新增了烘焙阴影，所以不再跳过没有实时阴影的光源
+            //&& cullingResults.GetShadowCasterBounds(visibleLightIndex, out Bounds b))
+            )
         {
             //获取烘焙信息
             LightBakingOutput lightBaking = light.bakingOutput;
@@ -117,6 +119,13 @@ public class Shadows
             )
             {
                 useShadowMask = true;
+            }
+            
+            //GetShadowCasterBounds返回bool:光源影响了场景中至少一个阴影投射对象
+            if (!cullingResults.GetShadowCasterBounds(visibleLightIndex, out Bounds b))
+            {
+                //使用烘焙阴影，但是阴影强度>0仍会使用，所以取负即可跳过实时阴影，在计算烘焙阴影时取绝对值又可使用
+                return new Vector3(-light.shadowStrength, 0f, 0f);
             }
 
             ShadowedDirectionalLights[ShadowedDirectionalLightCount] = new ShadowedDirectionalLight()

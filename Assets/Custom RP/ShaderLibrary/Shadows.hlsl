@@ -207,6 +207,16 @@ float GetBakedShadow(ShadowMask mask)
     return shadow;
 }
 
+//用于超出最大阴影距离时渲染烘焙阴影
+float GetBakedShadow(ShadowMask mask,float strength)
+{
+    if(mask.distance)
+    {
+        return lerp(1.0,GetBakedShadow(mask),strength);
+    }
+    return 1.0;
+}
+
 //GetShadowAttenuation()→
 //将烘焙阴影和实时阴影混合
 float MixBakedAndRealtimeShadows(ShadowData global, float shadow, float strength)
@@ -231,10 +241,10 @@ float GetDirectionalShadowAttenuation(
     return 1.0;
     #endif
     float shadow;
-    //忽略不开启阴影和阴影强度为0的光源
-    if (directional.strength <= 0.0)
+    //如果阴影强度为0，则仅使用烘焙阴影
+    if (directional.strength * global.strength <= 0.0)
     {
-        shadow = 1.0;
+        shadow = GetBakedShadow(global.shadowMask,abs(directional.strength));
     }
     else
     {
