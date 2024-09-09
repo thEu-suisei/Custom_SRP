@@ -55,7 +55,9 @@ struct DirectionalShadowData
 //shader需要知道是否正在使用shadowmask，如果使用则需要知道烘焙的阴影是是什么
 struct ShadowMask
 {
-    //距离模式是否启动
+    //ShadowMask Mode = shadowmask
+    bool always;
+    //ShadowMask Mode = distance shadowmask
     bool distance;
     float4 shadows;
 };
@@ -80,6 +82,7 @@ float FadedShadowStrength(float distance, float scale, float fade)
 ShadowData GetShadowData(Surface surfaceWS)
 {
     ShadowData data;
+    data.shadowMask.always = false;
     data.shadowMask.distance = false;
     data.shadowMask.shadows = 1.0;
     data.cascadeBlend = 1.0;
@@ -200,7 +203,7 @@ float GetCascadedShadow(
 float GetBakedShadow(ShadowMask mask)
 {
     float shadow = 1.0;
-    if (mask.distance)
+    if (mask.always||mask.distance)
     {
         shadow = mask.shadows.r;
     }
@@ -210,7 +213,7 @@ float GetBakedShadow(ShadowMask mask)
 //用于超出最大阴影距离时渲染烘焙阴影
 float GetBakedShadow(ShadowMask mask,float strength)
 {
-    if(mask.distance)
+    if(mask.always||mask.distance)
     {
         return lerp(1.0,GetBakedShadow(mask),strength);
     }
@@ -222,6 +225,12 @@ float GetBakedShadow(ShadowMask mask,float strength)
 float MixBakedAndRealtimeShadows(ShadowData global, float shadow, float strength)
 {
     float baked = GetBakedShadow(global.shadowMask);
+    if(global.shadowMask.always)
+    {
+        shadow = lerp(1.0,shadow,global.strength);
+        shadow = min (baked,shadow);
+        return lerp(1.0,shadow,strength);
+    }
     if (global.shadowMask.distance)
     {
         shadow = lerp(baked, shadow, global.strength);

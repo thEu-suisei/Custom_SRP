@@ -72,7 +72,7 @@ Shader "Custom RP/Lit"
             //CascadeMode多编译
             #pragma multi_compile _ _CASCADE_BLEND_SOFT _CASCADE_BLEND_DITHER
             //ShadowMask
-            #pragma multi_compile _ _SHADOW_MASK_DISTANCE
+            #pragma multi_compile _ _SHADOW_MASK_ALWAYS _SHADOW_MASK_DISTANCE
             //光照贴图
             #pragma multi_compile _ LIGHTMAP_ON
             //这一指令会让Unity生成两个该Shader的变体，一个支持GPU Instancing，另一个不支持。
