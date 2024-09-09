@@ -55,6 +55,7 @@ struct DirectionalShadowData
 //shader需要知道是否正在使用shadowmask，如果使用则需要知道烘焙的阴影是是什么
 struct ShadowMask
 {
+    //距离模式是否启动
     bool distance;
     float4 shadows;
 };
@@ -161,19 +162,11 @@ float FilterDirectionalShadow(float3 positionSTS)
 }
 
 //计算阴影衰减值，返回值[0,1]，0代表阴影衰减最大（片元完全在阴影中），1代表阴影衰减最少，片元完全被光照射。而[0,1]的中间值代表片元有一部分在阴影中
-float GetDirectionalShadowAttenuation(
+float GetCascadedShadow(
     DirectionalShadowData directional,
     ShadowData global,
     Surface surfaceWS)
 {
-    #if !defined(_RECEIVE_SHADOWS)
-    return 1.0;
-    #endif
-    //忽略不开启阴影和阴影强度为0的光源
-    if (directional.strength <= 0.0)
-    {
-        return 1.0;
-    }
     float3 normalBias = surfaceWS.normal * (directional.normalBias * _CascadeData[global.cascadeIndex].y);
     //根据对应Tile阴影变换矩阵和片元的世界坐标计算Tile上的像素坐标STS
     //法线偏移法：采样的位置从surfaceWS.position偏移至surfaceWS.position + normalBias
@@ -199,7 +192,53 @@ float GetDirectionalShadowAttenuation(
     }
 
     //考虑光源的阴影强度，strength为0，依然没有阴影
-    return lerp(1.0, shadow, directional.strength);
+    return shadow;
+}
+
+float GetBakedShadow(ShadowMask mask)
+{
+    float shadow = 1.0;
+    if(mask.distance)
+    {
+        shadow = mask.shadows.r;
+    }
+    return shadow;
+}
+
+//将烘焙阴影和实时阴影混合
+float MixBakedAndRealtimeShadows(ShadowData global,float shadow,float strength)
+{
+    float baked = GetBakedShadow(global.shadowMask);
+    if(global.shadowMask.distance)
+    {
+        shadow=baked;
+    }
+    return lerp(1.0,shadow,strength);
+}
+
+//计算阴影衰减值，返回值[0,1]，0代表阴影衰减最大（片元完全在阴影中），1代表阴影衰减最少，片元完全被光照射。而[0,1]的中间值代表片元有一部分在阴影中
+float GetDirectionalShadowAttenuation(
+    DirectionalShadowData directional,
+    ShadowData global,
+    Surface surfaceWS)
+{
+    #if !defined(_RECEIVE_SHADOWS)
+    return 1.0;
+    #endif
+    float shadow;
+    //忽略不开启阴影和阴影强度为0的光源
+    if (directional.strength <= 0.0)
+    {
+        shadow = 1.0;
+    }
+    else
+    {
+        shadow = GetCascadedShadow(directional,global,surfaceWS);
+        shadow = MixBakedAndRealtimeShadows(global,shadow,directional.strength);
+    }
+
+    //考虑光源的阴影强度，strength为0，依然没有阴影
+    return shadow;
 }
 
 
