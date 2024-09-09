@@ -49,6 +49,7 @@ struct DirectionalShadowData
     float strength;
     int tileIndex;
     float normalBias;
+    int shadowMaskChannel;
 };
 
 //ShadowMask Data
@@ -200,31 +201,34 @@ float GetCascadedShadow(
 }
 
 //GetShadowAttenuation()→
-float GetBakedShadow(ShadowMask mask)
+float GetBakedShadow(ShadowMask mask,int channel)
 {
     float shadow = 1.0;
     if (mask.always||mask.distance)
     {
-        shadow = mask.shadows.r;
+        if (channel>=0)
+        {
+            shadow = mask.shadows[channel];
+        }
     }
     return shadow;
 }
 
 //用于超出最大阴影距离时渲染烘焙阴影
-float GetBakedShadow(ShadowMask mask,float strength)
+float GetBakedShadow(ShadowMask mask,int channel,float strength)
 {
     if(mask.always||mask.distance)
     {
-        return lerp(1.0,GetBakedShadow(mask),strength);
+        return lerp(1.0,GetBakedShadow(mask,channel),strength);
     }
     return 1.0;
 }
 
 //GetShadowAttenuation()→
 //将烘焙阴影和实时阴影混合
-float MixBakedAndRealtimeShadows(ShadowData global, float shadow, float strength)
+float MixBakedAndRealtimeShadows(ShadowData global, float shadow, int shadowMaskChannel, float strength)
 {
-    float baked = GetBakedShadow(global.shadowMask);
+    float baked = GetBakedShadow(global.shadowMask,shadowMaskChannel);
     if(global.shadowMask.always)
     {
         shadow = lerp(1.0,shadow,global.strength);
@@ -253,12 +257,12 @@ float GetDirectionalShadowAttenuation(
     //如果阴影强度为0，则仅使用烘焙阴影
     if (directional.strength * global.strength <= 0.0)
     {
-        shadow = GetBakedShadow(global.shadowMask,abs(directional.strength));
+        shadow = GetBakedShadow(global.shadowMask,directional.shadowMaskChannel,abs(directional.strength));
     }
     else
     {
         shadow = GetCascadedShadow(directional, global, surfaceWS);
-        shadow = MixBakedAndRealtimeShadows(global, shadow, directional.strength);
+        shadow = MixBakedAndRealtimeShadows(global, shadow,directional.shadowMaskChannel, directional.strength);
     }
 
     //考虑光源的阴影强度，strength为0，依然没有阴影

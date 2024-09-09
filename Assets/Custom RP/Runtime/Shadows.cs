@@ -50,6 +50,7 @@ public class Shadows
         public float slopeScaleBias;
 
         public float nearPlaneOffset;
+        
     }
 
     //虽然我们目前最大光源数为1，但依然用数组存储，因为最大数量可配置嘛~
@@ -99,8 +100,9 @@ public class Shadows
     }
 
     //每帧执行，用于为light配置shadow altas（shadowMap）上预留一片空间来渲染阴影贴图，同时存储一些其他必要信息
-    //返回每个光源的[light shadow strength, Cascade Index, light shadow normalBias]，传递给GPU存储到Light结构体
-    public Vector3 ReserveDirectionalShadows(Light light, int visibleLightIndex)
+    //返回每个光源的 阴影强度/cascade索引/法线偏移/使用shadowmask的通道索引[light shadow strength, Cascade Index, light shadow normalBias, maskChannel]
+    //传递给GPU存储到Light结构体
+    public Vector4 ReserveDirectionalShadows(Light light, int visibleLightIndex)
     {
         //配置光源数不超过最大值
         //只配置开启阴影且阴影强度大于0的光源
@@ -111,6 +113,7 @@ public class Shadows
             //&& cullingResults.GetShadowCasterBounds(visibleLightIndex, out Bounds b))
             )
         {
+            float maskChannel = -1;
             //获取烘焙信息
             LightBakingOutput lightBaking = light.bakingOutput;
             //检查光照烘焙模式，并更改对应设置
@@ -120,13 +123,14 @@ public class Shadows
             )
             {
                 useShadowMask = true;
+                maskChannel = lightBaking.occlusionMaskChannel;
             }
             
             //GetShadowCasterBounds返回bool:光源影响了场景中至少一个阴影投射对象
             if (!cullingResults.GetShadowCasterBounds(visibleLightIndex, out Bounds b))
             {
                 //使用烘焙阴影，但是阴影强度>0仍会使用，所以取负即可跳过实时阴影，在计算烘焙阴影时取绝对值又可使用
-                return new Vector3(-light.shadowStrength, 0f, 0f);
+                return new Vector4(-light.shadowStrength, 0f, 0f,maskChannel);
             }
 
             ShadowedDirectionalLights[ShadowedDirectionalLightCount] = new ShadowedDirectionalLight()
@@ -135,13 +139,14 @@ public class Shadows
                 slopeScaleBias = light.shadowBias,
                 nearPlaneOffset = light.shadowNearPlane
             };
-            return new Vector3(
+            return new Vector4(
                 light.shadowStrength,
                 settings.directional.cascadeCount * ShadowedDirectionalLightCount++,
-                light.shadowNormalBias);
+                light.shadowNormalBias,
+                maskChannel);
         }
 
-        return Vector3.zero;
+        return new Vector4(0f,0f,0f,-1f);
     }
 
     //渲染阴影贴图
