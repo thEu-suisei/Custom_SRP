@@ -2,6 +2,7 @@
 #define CUSTOM_GI_INCLUDED
 
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/EntityLighting.hlsl"//use it to retrieve the light data.
+#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/ImageBasedLighting.hlsl"
 
 //天空盒采样
 TEXTURECUBE(unity_SpecCube0);
@@ -111,20 +112,22 @@ float4 SampleBakedShadows(float2 lightMapUV, Surface surfaceWS)
 }
 
 //采样天空盒
-float3 SampleEnvironment(Surface surfaceWS)
+float3 SampleEnvironment(Surface surfaceWS,BRDF brdf)
 {
     //立方体贴图的采样使用的是方向而非坐标，这里使用相机方向与表面反射的方向
     float3 uvw = reflect(-surfaceWS.viewDirection,surfaceWS.normal);
+    //使用库函数计算mip级别
+    float mip = PerceptualRoughnessToMipmapLevel(brdf.perceptualRoughness);
     //参数：贴图、采样器状态、UVW 坐标 、 mip 级别
-    float4 environment = SAMPLE_TEXTURECUBE_LOD(unity_SpecCube0,samplerunity_SpecCube0,uvw,0.0);
+    float4 environment = SAMPLE_TEXTURECUBE_LOD(unity_SpecCube0,samplerunity_SpecCube0,uvw,mip);
     return environment.rgb;
 }
 
-GI GetGI(float2 lightMapUV, Surface surfaceWS)
+GI GetGI(float2 lightMapUV, Surface surfaceWS,BRDF brdf)
 {
     GI gi;
     gi.diffuse = SampleLightMap(lightMapUV) + SampleLightProbe(surfaceWS);
-    gi.specular = SampleEnvironment(surfaceWS);
+    gi.specular = SampleEnvironment(surfaceWS,brdf);
     gi.shadowMask.always = false;
     gi.shadowMask.distance = false;
     gi.shadowMask.shadows = 1.0;
