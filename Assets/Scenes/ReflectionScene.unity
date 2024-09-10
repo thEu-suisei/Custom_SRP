@@ -171,8 +171,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   baseColor: {r: 0.5529412, g: 0.23921569, b: 0.24705882, a: 1}
   cutoff: 0.5
-  metallic: 0
-  smoothness: 0.5
+  metallic: 1
+  smoothness: 0.717
   emissionColor: {r: 0, g: 0, b: 0, a: 1}
 --- !u!135 &13550899
 SphereCollider:
@@ -1547,8 +1547,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   baseColor: {r: 0.6509804, g: 0.34901962, b: 0.7176471, a: 1}
   cutoff: 0.5
-  metallic: 0
-  smoothness: 0.5
+  metallic: 0.912
+  smoothness: 0.61
   emissionColor: {r: 0, g: 0, b: 0, a: 1}
 --- !u!65 &595751380
 BoxCollider:
@@ -4236,7 +4236,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   baseColor: {r: 0.23529412, g: 0.5019608, b: 0.2, a: 1}
   cutoff: 0.5
-  metallic: 0
+  metallic: 0.862
   smoothness: 0.5
   emissionColor: {r: 0, g: 0, b: 0, a: 1}
 --- !u!135 &1327733619
@@ -6066,7 +6066,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   baseColor: {r: 0.3490566, g: 0.3490566, b: 0.3490566, a: 1}
   cutoff: 0.5
-  metallic: 0
+  metallic: 0.723
   smoothness: 0.5
   emissionColor: {r: 0, g: 0, b: 0, a: 1}
 --- !u!65 &2061669081
