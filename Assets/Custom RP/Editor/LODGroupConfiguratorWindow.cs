@@ -3,8 +3,9 @@ using UnityEngine;
 
 public class LODGroupConfiguratorWindow : EditorWindow
 {
-    private LODFadeMode selectedFadeMode = LODFadeMode.None;
-    private float fadeTransitionWidth = 1f;
+    private bool animateCrossFade = false; // Animate Cross-fading 配置
+    private LODFadeMode selectedFadeMode = LODFadeMode.CrossFade; // Fade Mode 配置
+    private float fadeTransitionWidth = 1f; // Fade Transition Width 配置
 
     // 在菜单中添加自定义窗口
     [MenuItem("Tools/LODGroup Configurator")]
@@ -18,6 +19,9 @@ public class LODGroupConfiguratorWindow : EditorWindow
     private void OnGUI()
     {
         GUILayout.Label("Configure LODGroup Settings", EditorStyles.boldLabel);
+
+        // Animate Cross-fading 复选框
+        animateCrossFade = EditorGUILayout.Toggle("Animate Cross-fading", animateCrossFade);
 
         // 下拉菜单选择 Fade Mode
         selectedFadeMode = (LODFadeMode)EditorGUILayout.EnumPopup("Fade Mode", selectedFadeMode);
@@ -41,6 +45,9 @@ public class LODGroupConfiguratorWindow : EditorWindow
         {
             // 开始记录LODGroup的修改
             Undo.RecordObject(lodGroup, "Configure LODGroup");
+
+            // 设置 LODGroup 的 Animate Cross-fading
+            lodGroup.animateCrossFading = animateCrossFade;
 
             // 设置 LODGroup 的 Fade Mode
             lodGroup.fadeMode = selectedFadeMode;
