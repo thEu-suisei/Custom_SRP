@@ -3,7 +3,9 @@
 
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/EntityLighting.hlsl"//use it to retrieve the light data.
 
-
+//天空盒采样
+TEXTURECUBE(unity_SpecCube0);
+SAMPLER(samplerunity_SpecCube0);
 
 //Lightmap 贴图和采样器
 TEXTURE2D(unity_Lightmap);
@@ -20,8 +22,9 @@ SAMPLER(samplerunity_ProbeVolumeSH);
 struct GI
 {
     //间接光来自所有方向，因此只能用于漫反射照明，不能用于镜面反射。
-    //镜面环境反射通常通过反射探针提供，屏幕空间反射是另一种选择。
     float3 diffuse;
+    //镜面环境反射通常通过反射探针提供，屏幕空间反射是另一种选择。
+    float3 specular;
     ShadowMask shadowMask;
 };
 
@@ -107,10 +110,21 @@ float4 SampleBakedShadows(float2 lightMapUV, Surface surfaceWS)
     #endif
 }
 
+//采样天空盒
+float3 SampleEnvironment(Surface surfaceWS)
+{
+    //立方体贴图的采样使用的是方向而非坐标，这里使用相机方向与表面反射的方向
+    float3 uvw = reflect(-surfaceWS.viewDirection,surfaceWS.normal);
+    //参数：贴图、采样器状态、UVW 坐标 、 mip 级别
+    float4 environment = SAMPLE_TEXTURECUBE_LOD(unity_SpecCube0,samplerunity_SpecCube0,uvw,0.0);
+    return environment.rgb;
+}
+
 GI GetGI(float2 lightMapUV, Surface surfaceWS)
 {
     GI gi;
     gi.diffuse = SampleLightMap(lightMapUV) + SampleLightProbe(surfaceWS);
+    gi.specular = SampleEnvironment(surfaceWS);
     gi.shadowMask.always = false;
     gi.shadowMask.distance = false;
     gi.shadowMask.shadows = 1.0;

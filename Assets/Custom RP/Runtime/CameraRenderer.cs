@@ -98,7 +98,8 @@ public partial class CameraRenderer
                 PerObjectData.LightProbe |
                 PerObjectData.LightProbeProxyVolume |
                 PerObjectData.OcclusionProbe |
-                PerObjectData.OcclusionProbeProxyVolume
+                PerObjectData.OcclusionProbeProxyVolume |
+                PerObjectData.ReflectionProbes
         };
         //增加对Lit.shader的绘制支持,index代表本次DrawRenderer中该pass的绘制优先级（0最先绘制）
         drawingSettings.SetShaderPassName(1, litShaderTagId); //"LightMode"="CustomLit"
