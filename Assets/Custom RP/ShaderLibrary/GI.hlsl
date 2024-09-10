@@ -120,7 +120,7 @@ float3 SampleEnvironment(Surface surfaceWS,BRDF brdf)
     float mip = PerceptualRoughnessToMipmapLevel(brdf.perceptualRoughness);
     //参数：贴图、采样器状态、UVW 坐标 、 mip 级别
     float4 environment = SAMPLE_TEXTURECUBE_LOD(unity_SpecCube0,samplerunity_SpecCube0,uvw,mip);
-    return environment.rgb;
+    return DecodeHDREnvironment(environment, unity_SpecCube0_HDR);;
 }
 
 GI GetGI(float2 lightMapUV, Surface surfaceWS,BRDF brdf)

@@ -22,6 +22,8 @@ CBUFFER_START(UnityPerDraw)
     float4 unity_DynamicLightmapST;
     //unity会将shadowmask烘焙到light probe中
     float4 unity_ProbesOcclusion;
+    //用于解码反射探针，因为其可能是HDR或者LDR
+    float4 unity_SpecCube0_HDR;
 
     //LightProbe
     //线性插值后得到的当前点的radiance SH系数，
