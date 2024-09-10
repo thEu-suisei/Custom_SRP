@@ -278,6 +278,7 @@ Transform:
   - {fileID: 1105853943}
   - {fileID: 1140696491}
   - {fileID: 2080769058}
+  - {fileID: 1474719658}
   - {fileID: 802431506}
   - {fileID: 694513254}
   - {fileID: 81224290}
@@ -596,8 +597,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   baseColor: {r: 0.34117648, g: 0.23921569, b: 0.16862746, a: 1}
   cutoff: 0.5
-  metallic: 0
-  smoothness: 0.5
+  metallic: 1
+  smoothness: 0.703
   emissionColor: {r: 0, g: 0, b: 0, a: 1}
 --- !u!135 &188852294
 SphereCollider:
@@ -842,8 +843,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   baseColor: {r: 0.34117648, g: 0.7882353, b: 0.5372549, a: 1}
   cutoff: 0.5
-  metallic: 0
-  smoothness: 0.5
+  metallic: 1
+  smoothness: 0.679
   emissionColor: {r: 0, g: 0, b: 0, a: 1}
 --- !u!135 &245565408
 SphereCollider:
@@ -1915,8 +1916,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   baseColor: {r: 0.69411767, g: 0.6666667, b: 0.3529412, a: 1}
   cutoff: 0.5
-  metallic: 0
-  smoothness: 0.5
+  metallic: 1
+  smoothness: 0.811
   emissionColor: {r: 0, g: 0, b: 0, a: 1}
 --- !u!135 &663331316
 SphereCollider:
@@ -2161,8 +2162,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   baseColor: {r: 0.18431373, g: 1, b: 1, a: 1}
   cutoff: 0.5
-  metallic: 0
-  smoothness: 0.5
+  metallic: 1
+  smoothness: 0.654
   emissionColor: {r: 0, g: 0, b: 0, a: 1}
 --- !u!135 &694513256
 SphereCollider:
@@ -2530,7 +2531,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   baseColor: {r: 1, g: 1, b: 0.19215687, a: 1}
   cutoff: 0.5
-  metallic: 0
+  metallic: 0.088
   smoothness: 0.5
   emissionColor: {r: 0, g: 0, b: 0, a: 1}
 --- !u!135 &802431508
@@ -2777,8 +2778,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   baseColor: {r: 0.69411767, g: 0.6666667, b: 0.3529412, a: 1}
   cutoff: 0.5
-  metallic: 0
-  smoothness: 0.5
+  metallic: 1
+  smoothness: 0.585
   emissionColor: {r: 0, g: 0, b: 0, a: 1}
 --- !u!135 &843312032
 SphereCollider:
@@ -3989,7 +3990,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   baseColor: {r: 0.34117648, g: 0.7882353, b: 0.5372549, a: 1}
   cutoff: 0.5
-  metallic: 0
+  metallic: 0.264
   smoothness: 0.5
   emissionColor: {r: 0, g: 0, b: 0, a: 1}
 --- !u!135 &1293257798
@@ -4684,6 +4685,129 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1420752365}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1 &1474719657
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1474719658}
+  - component: {fileID: 1474719662}
+  - component: {fileID: 1474719661}
+  - component: {fileID: 1474719660}
+  - component: {fileID: 1474719659}
+  m_Layer: 0
+  m_Name: Sphere (77)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1474719658
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1474719657}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -5.14, y: 3, z: 2.01}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 55097786}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1474719659
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1474719657}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 33675e1439ff88c48a3b5df59ac2aee7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  baseColor: {r: 0.972549, g: 0.007843138, b: 0.16862746, a: 1}
+  cutoff: 0.5
+  metallic: 1
+  smoothness: 0.792
+  emissionColor: {r: 0, g: 0, b: 0, a: 1}
+--- !u!135 &1474719660
+SphereCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1474719657}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Radius: 0.5
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!23 &1474719661
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1474719657}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: 7a24b6f15aeb77f448e9533d244f801d, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!33 &1474719662
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1474719657}
+  m_Mesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
 --- !u!1 &1584716556
 GameObject:
   m_ObjectHideFlags: 0
@@ -6065,7 +6189,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   baseColor: {r: 1, g: 0.56078434, b: 0.23529412, a: 1}
   cutoff: 0.5
-  metallic: 0
+  metallic: 0.742
   smoothness: 0.5
   emissionColor: {r: 0, g: 0, b: 0, a: 1}
 --- !u!135 &2063122813
@@ -6188,8 +6312,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   baseColor: {r: 0.2, g: 0.53333336, b: 1, a: 1}
   cutoff: 0.5
-  metallic: 0
-  smoothness: 0.5
+  metallic: 1
+  smoothness: 0.703
   emissionColor: {r: 0, g: 0, b: 0, a: 1}
 --- !u!135 &2080769060
 SphereCollider:
@@ -6434,7 +6558,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   baseColor: {r: 1, g: 0.6203886, b: 0.3160377, a: 1}
   cutoff: 0.5
-  metallic: 0
+  metallic: 0.245
   smoothness: 0.5
   emissionColor: {r: 0, g: 0, b: 0, a: 1}
 --- !u!135 &2138001670
