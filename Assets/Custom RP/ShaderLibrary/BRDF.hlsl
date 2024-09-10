@@ -66,4 +66,13 @@ float3 DirectBRDF(Surface surface,BRDF brdf,Light light)
     return SpecularStrength(surface,brdf,light) * brdf.specular + brdf.diffuse;
 }
 
+//diffuse/specular:从全局照明获得的漫反射和镜面反射颜色
+float3 IndirectBRDF(Surface surface,BRDF brdf , float3 diffuse , float3 specular)
+{
+    float3 reflection = specular * brdf.specular;
+    //粗糙度会散射reflection
+    reflection /= brdf.roughness * brdf.roughness + 1.0;
+    return diffuse*brdf.diffuse + reflection;
+}
+
 #endif
