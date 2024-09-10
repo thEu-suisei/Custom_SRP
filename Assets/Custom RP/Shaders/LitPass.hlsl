@@ -113,6 +113,7 @@ float4 LitPassFragment(Varyings input) : SV_TARGET
     surface.alpha = base.a;
     surface.metallic = GetMetallic(input.baseUV);
     surface.smoothness = GetSmoothness(input.baseUV);
+	surface.fresnelStrength = GetFresnel(input.baseUV);
     surface.dither=InterleavedGradientNoise(input.positionCS.xy,0);
     #if defined(_PREMULTIPLY_ALPHA)
         BRDF brdf = GetBRDF(surface,true);

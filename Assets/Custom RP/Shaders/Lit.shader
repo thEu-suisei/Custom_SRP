@@ -19,6 +19,8 @@ Shader "Custom RP/Lit"
         _Metallic("Metallic",Range(0,1)) = 0
         //光滑度
         _Smoothness("Smoothness",Range(0,1)) = 0.5
+        //菲涅尔调节
+        _Fresnel ("Fresnel", Range(0, 1)) = 1
         
         //Emission自发光
         [NoScaleOffset] _EmissionMap("Emission", 2D) = "white" {}

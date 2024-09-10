@@ -22,6 +22,8 @@ struct Surface
     float smoothness;
     //深度
     float depth;
+    //菲涅尔强度，可配置
+    float fresnelStrength;
     //cascade抖动
     float dither;
 };
