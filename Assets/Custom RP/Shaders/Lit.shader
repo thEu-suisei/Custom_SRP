@@ -75,6 +75,8 @@ Shader "Custom RP/Lit"
             #pragma multi_compile _ _SHADOW_MASK_ALWAYS _SHADOW_MASK_DISTANCE
             //光照贴图
             #pragma multi_compile _ LIGHTMAP_ON
+            //LOD Cross-Fade
+            #pragma multi_compile _ LOD_FADE_CROSSFADE
             //这一指令会让Unity生成两个该Shader的变体，一个支持GPU Instancing，另一个不支持。
             #pragma multi_compile_instancing
             #pragma vertex LitPassVertex
@@ -99,6 +101,8 @@ Shader "Custom RP/Lit"
             #pragma target 3.5
             //支持Alpha Test的裁剪
             #pragma shader_feature _ _SHADOWS_CLIP _SHADOWS_DITHER
+            //LOD Cross-Fade
+            #pragma multi_compile _ LOD_FADE_CROSSFADE
             //定义diffuse项是否使用Premultiplied alpha的关键字
             #pragma multi_compile_instancing
             #pragma vertex ShadowCasterPassVertex
