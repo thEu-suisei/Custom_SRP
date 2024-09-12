@@ -5642,8 +5642,13 @@ Transform:
   m_GameObject: {fileID: 1827492961}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: 0.003049325, z: -0, w: 0.99999535}
+<<<<<<< Updated upstream:Assets/Scenes/DirectionalShadowScene.unity
   m_LocalPosition: {x: -6.8443127, y: -0.28983748, z: 11.557577}
   m_LocalScale: {x: 1.4053515, y: 0.2810703, z: 1.4053515}
+=======
+  m_LocalPosition: {x: -0.8, y: -1.9779987, z: 3.28}
+  m_LocalScale: {x: 2.3524046, y: 0.47048092, z: 2.3524046}
+>>>>>>> Stashed changes:Assets/Scenes/Directional Shadow.unity
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1643463573}

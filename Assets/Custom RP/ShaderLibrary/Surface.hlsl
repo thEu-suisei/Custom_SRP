@@ -26,6 +26,8 @@ struct Surface
     float fresnelStrength;
     //cascade抖动
     float dither;
+    //遮挡，MODS贴图中
+    float occlusion;
 };
 
 #endif

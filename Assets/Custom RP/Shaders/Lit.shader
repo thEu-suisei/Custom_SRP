@@ -14,18 +14,21 @@ Shader "Custom RP/Lit"
         [Toggle(_CLIPPING)] _Clipping("Alpha Clipping",Float) = 0
         //Shadow模式属性
         [KeywordEnum(On,Clip,Dither,Off)]_Shadows("Shadows",Float)=0
-        //PBR模型下Metallic Workflow的两个物体表面参数
+        //MaskMap，默认值为白色，不会产生影响
+        [NoScaleOffset] _MaskMap ("Mask(MODS)",2D)="white"{}
         //金属度
         _Metallic("Metallic",Range(0,1)) = 0
+        //遮挡Mask强度，0完全遮挡
+        _Occlusion ("Occlusion", Range(0, 1)) = 1
         //光滑度
         _Smoothness("Smoothness",Range(0,1)) = 0.5
         //菲涅尔调节
         _Fresnel ("Fresnel", Range(0, 1)) = 1
-        
+
         //Emission自发光
         [NoScaleOffset] _EmissionMap("Emission", 2D) = "white" {}
-		[HDR] _EmissionColor("Emission", Color) = (0.0, 0.0, 0.0, 0.0)
-        
+        [HDR] _EmissionColor("Emission", Color) = (0.0, 0.0, 0.0, 0.0)
+
         //Premultiply Alpha的关键字
         [Toggle(_PREMULTIPLY_ALPHA)]_PremulAlpha("Premultiply Alpha",Float) = 0
 
@@ -37,10 +40,10 @@ Shader "Custom RP/Lit"
         [Enum(Off,0,On,1)] _ZWrite("Z Write",Float) = 1
         //接受阴影，选择让表面是否接受阴影
         [Toggle(_RECEIVE_SHADOWS)] _ReceiveShadows ("Receive Shadows", Float) = 1
-        
+
         //烘焙透明物体，需要用到硬编码属性
         [HideInInspector] _MainTex("Texture for Lightmap", 2D) = "white" {}
-		[HideInInspector] _Color("Color for Lightmap", Color) = (0.5, 0.5, 0.5, 1.0)
+        [HideInInspector] _Color("Color for Lightmap", Color) = (0.5, 0.5, 0.5, 1.0)
     }
 
     SubShader
@@ -115,7 +118,7 @@ Shader "Custom RP/Lit"
         }
 
         //Meta Pass 用于烘焙而非运行时的pass
-        Pass 
+        Pass
         {
             Name "Meta"
             Tags
@@ -124,15 +127,15 @@ Shader "Custom RP/Lit"
             }
 
             //Cull Off/Front/Cull Back，不剔除/正面剔除/背面剔除
-			Cull Off
+            Cull Off
 
-			HLSLPROGRAM
-			#pragma target 3.5
-			#pragma vertex MetaPassVertex
-			#pragma fragment MetaPassFragment
-			#include "MetaPass.hlsl"
-			ENDHLSL
-		}
+            HLSLPROGRAM
+            #pragma target 3.5
+            #pragma vertex MetaPassVertex
+            #pragma fragment MetaPassFragment
+            #include "MetaPass.hlsl"
+            ENDHLSL
+        }
     }
 
     //告诉Unity编辑器使用CustomShaderGUI类的一个实例来为使用Lit.shader的材质绘制Inspector窗口
