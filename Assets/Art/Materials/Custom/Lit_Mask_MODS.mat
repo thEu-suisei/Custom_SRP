@@ -37,6 +37,10 @@ Material:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    - _DetailMap:
+        m_Texture: {fileID: 2800000, guid: daa2b9e43693be54a92ec4a369b22d18, type: 3}
+        m_Scale: {x: 8, y: 4}
+        m_Offset: {x: 0, y: 0}
     - _DetailMask:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
@@ -74,7 +78,9 @@ Material:
     - _BumpScale: 1
     - _Clipping: 0
     - _Cutoff: 0.5
+    - _DetailAlbedo: 0.2
     - _DetailNormalMapScale: 1
+    - _DetailSmoothness: 1
     - _DstBlend: 0
     - _Fresnel: 0.5
     - _GlossMapScale: 1
@@ -95,7 +101,7 @@ Material:
     - _UVSec: 0
     - _ZWrite: 1
     m_Colors:
-    - _BaseColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
-    - _Color: {r: 0.5, g: 0.5, b: 0.5, a: 1}
+    - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
+    - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _EmissionColor: {r: 1, g: 1, b: 1, a: 1}
   m_BuildTextureStacks: []

@@ -54,6 +54,8 @@ struct Varyings
     //世界空间下的法线信息
     float3 normalWS:VAR_NORMAL;
     float2 baseUV:VAR_BASE_UV;
+    //细节纹理左边
+    float2 detailUV:VAR_DETAIL_UV;
     GI_ATTRIBUTE_DATA
     //定义每一个片元对应的object的唯一ID
     UNITY_VERTEX_INPUT_INSTANCE_ID
@@ -85,6 +87,7 @@ Varyings LitPassVertex(Attributes input)
     //应用纹理ST变换
     // output.baseUV = TransformBaseUV(input.baseUV);
     output.baseUV = TransformBaseUV(input.baseUV);
+    output.detailUV = TransformDetailUV(input.baseUV);
     return output;
 }
 
@@ -93,7 +96,7 @@ float4 LitPassFragment(Varyings input) : SV_TARGET
     //从input中提取实例的ID并将其存储在其他实例化宏所依赖的全局静态变量中
     UNITY_SETUP_INSTANCE_ID(input);
     ClipLOD(input.positionCS.xy,unity_LODFade.x);
-    float4 base = GetBase(input.baseUV);
+    float4 base = GetBase(input.baseUV,input.detailUV);
 
     //只有在_CLIPPING关键字启用时编译该段代码
     #if defined(_CLIPPING)
@@ -113,7 +116,7 @@ float4 LitPassFragment(Varyings input) : SV_TARGET
     surface.alpha = base.a;
     surface.metallic = GetMetallic(input.baseUV);
     surface.occlusion = GetOcclusion(input.baseUV);
-    surface.smoothness = GetSmoothness(input.baseUV);
+    surface.smoothness = GetSmoothness(input.baseUV, input.detailUV);
 	surface.fresnelStrength = GetFresnel(input.baseUV);
     surface.dither=InterleavedGradientNoise(input.positionCS.xy,0);
     #if defined(_PREMULTIPLY_ALPHA)

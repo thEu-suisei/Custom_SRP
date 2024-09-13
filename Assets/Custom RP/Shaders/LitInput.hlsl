@@ -9,8 +9,12 @@ TEXTURE2D(_EmissionMap);
 //采样器包含了从纹理中采样时的过滤模式、寻址模式等信息。定义了如何从纹理中获取像素数据
 SAMPLER(sampler_BaseMap);
 
+TEXTURE2D(_DetailMap);
+SAMPLER(sampler_DetailMap);
+
 UNITY_INSTANCING_BUFFER_START(UnityPerMaterial)
     UNITY_DEFINE_INSTANCED_PROP(float4, _BaseMap_ST)
+    UNITY_DEFINE_INSTANCED_PROP(float4,_DetailMap_ST)
     UNITY_DEFINE_INSTANCED_PROP(float4, _BaseColor)
     UNITY_DEFINE_INSTANCED_PROP(float4, _EmissionColor)
     UNITY_DEFINE_INSTANCED_PROP(float, _Cutoff)
@@ -18,6 +22,8 @@ UNITY_INSTANCING_BUFFER_START(UnityPerMaterial)
     UNITY_DEFINE_INSTANCED_PROP(float, _Occlusion)
     UNITY_DEFINE_INSTANCED_PROP(float, _Smoothness)
     UNITY_DEFINE_INSTANCED_PROP(float, _Fresnel)
+    UNITY_DEFINE_INSTANCED_PROP(float, _DetailAlbedo)
+    UNITY_DEFINE_INSTANCED_PROP(float, _DetailSmoothness)
 UNITY_INSTANCING_BUFFER_END(UnityPerMaterial)
 
 float2 TransformBaseUV(float2 baseUV)
@@ -29,16 +35,34 @@ float2 TransformBaseUV(float2 baseUV)
     return baseUV * baseST.xy + baseST.zw;
 }
 
+float2 TransformDetailUV(float2 detailUV)
+{
+    float4 detailST = INPUT_PROP(_DetailMap_ST);
+    return detailUV * detailST.xy + detailST.zw;
+}
+
 //LitPass中不需要知道哪些属性用到Mask，而是将Mask写在各个属性的getter函数中。
 float4 GetMask(float2 baseUV)
 {
     return SAMPLE_TEXTURE2D(_MaskMap,sampler_BaseMap,baseUV);
 }
 
-float4 GetBase(float2 baseUV)
+float4 GetDetail (float2 detailUV)
+{
+    float4 map = SAMPLE_TEXTURE2D(_DetailMap, sampler_DetailMap, detailUV);
+    return map * 2.0 - 1.0;
+}
+
+float4 GetBase(float2 baseUV, float2 detailUV = 0.0)
 {
     float4 map = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, baseUV);
     float4 color = INPUT_PROP(_BaseColor);
+
+    float detail = GetDetail(detailUV).r* INPUT_PROP(_DetailAlbedo);
+    float mask = GetMask(baseUV).b;
+    map.rgb = lerp(sqrt(map.rgb), detail < 0.0 ? 0.0 : 1.0, abs(detail)* mask);
+    map.rgb *= map.rgb;
+    
     return map * color;
 }
 
@@ -62,10 +86,14 @@ float GetOcclusion (float2 baseUV)
     return occlusion;
 }
 
-float GetSmoothness(float2 baseUV)
+float GetSmoothness(float2 baseUV, float2 detailUV = 0.0)
 {
     float smoothness = INPUT_PROP(_Smoothness);
     smoothness *= GetMask(baseUV).a;
+
+    float detail = GetDetail(detailUV).b * INPUT_PROP(_DetailSmoothness);
+    float mask = GetMask(baseUV).b;
+    smoothness = lerp(smoothness, detail < 0.0 ? 0.0 : 1.0, abs(detail) * mask);
     return smoothness;
 }
 

@@ -14,7 +14,7 @@ Shader "Custom RP/Lit"
         [Toggle(_CLIPPING)] _Clipping("Alpha Clipping",Float) = 0
         //Shadow模式属性
         [KeywordEnum(On,Clip,Dither,Off)]_Shadows("Shadows",Float)=0
-        //MaskMap，默认值为白色，不会产生影响
+        //MaskMap，默认值为白色，不会产生影响。NoScaleOffset：隐藏ST
         [NoScaleOffset] _MaskMap ("Mask(MODS)",2D)="white"{}
         //金属度
         _Metallic("Metallic",Range(0,1)) = 0
@@ -28,6 +28,13 @@ Shader "Custom RP/Lit"
         //Emission自发光
         [NoScaleOffset] _EmissionMap("Emission", 2D) = "white" {}
         [HDR] _EmissionColor("Emission", Color) = (0.0, 0.0, 0.0, 0.0)
+        
+        //细节纹理
+        _DetailMap("Details",2D)="linearGrey"{}
+        //控制细节强度
+        _DetailAlbedo("Detail Albedo", Range(0, 1)) = 1
+        //细节平滑度
+        _DetailSmoothness("Detail Smoothness", Range(0, 1)) = 1
 
         //Premultiply Alpha的关键字
         [Toggle(_PREMULTIPLY_ALPHA)]_PremulAlpha("Premultiply Alpha",Float) = 0
