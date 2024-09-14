@@ -14,8 +14,11 @@ Shader "Custom RP/Lit"
         [Toggle(_CLIPPING)] _Clipping("Alpha Clipping",Float) = 0
         //Shadow模式属性
         [KeywordEnum(On,Clip,Dither,Off)]_Shadows("Shadows",Float)=0
+        
+        [Toggle(_MASK_MAP)] _MaskMapToggle ("Mask Map", Float) = 0
         //MaskMap，默认值为白色，不会产生影响。NoScaleOffset：隐藏ST
         [NoScaleOffset] _MaskMap ("Mask(MODS)",2D)="white"{}
+        
         //金属度
         _Metallic("Metallic",Range(0,1)) = 0
         //遮挡Mask强度，0完全遮挡
@@ -24,17 +27,26 @@ Shader "Custom RP/Lit"
         _Smoothness("Smoothness",Range(0,1)) = 0.5
         //菲涅尔调节
         _Fresnel ("Fresnel", Range(0, 1)) = 1
+        
+        [Toggle(_NORMAL_MAP)] _NormalMapToggle ("Normal Map", Float) = 0
+        //法线贴图，bump作为其默认值，表示平面map
+        [NoScaleOffset]_NormalMap("Normal",2D) = "bump"{}
+        //控制法线强度
+		_NormalScale("Normal Scale", Range(0, 1)) = 1
 
         //Emission自发光
         [NoScaleOffset] _EmissionMap("Emission", 2D) = "white" {}
         [HDR] _EmissionColor("Emission", Color) = (0.0, 0.0, 0.0, 0.0)
         
+        [Toggle(_DETAIL_MAP)] _DetailMapToggle ("Detail Maps", Float) = 0
         //细节纹理
         _DetailMap("Details",2D)="linearGrey"{}
-        //控制细节强度
+        //细节法线
+        [NoScaleOffset] _DetailNormalMap("Detail Normals", 2D) = "bump" {}
+        //控制细节强度/细节平滑度/细节法线强度
         _DetailAlbedo("Detail Albedo", Range(0, 1)) = 1
-        //细节平滑度
         _DetailSmoothness("Detail Smoothness", Range(0, 1)) = 1
+        _DetailNormalScale("Detail Normal Scale", Range(0, 1)) = 1
 
         //Premultiply Alpha的关键字
         [Toggle(_PREMULTIPLY_ALPHA)]_PremulAlpha("Premultiply Alpha",Float) = 0
@@ -79,6 +91,10 @@ Shader "Custom RP/Lit"
             #pragma shader_feature _PREMULTIPLY_ALPHA
             //接受阴影
             #pragma shader_feature _RECEIVE_SHADOWS
+            //Toggle
+            #pragma shader_feature _NORMAL_MAP
+            #pragma shader_feature _MASK_MAP
+            #pragma shader_feature _DETAIL_MAP
             //多编译，会根据生成Shader的不同关键字变体
             #pragma multi_compile _ _DIRECTIONAL_PCF3 _DIRECTIONAL_PCF5 _DIRECTIONAL_PCF7
             //CascadeMode多编译

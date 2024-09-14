@@ -8,8 +8,10 @@ struct Surface
 {
     //片元的世界坐标
     float3 position;
-    //法线，在这里不明确其坐标空间，因为光照可以在任何空间下计算，在该项目中使用世界空间
+    //法线
     float3 normal;
+    //法线插值用于阴影偏移，为表面实际的法线
+    float3 interpolatedNormal;
     //观察方向：物体表面指向摄像机
     float3 viewDirection;
     //表面颜色

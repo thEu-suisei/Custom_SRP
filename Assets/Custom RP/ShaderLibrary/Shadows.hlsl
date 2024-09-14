@@ -172,7 +172,7 @@ float GetCascadedShadow(
     ShadowData global,
     Surface surfaceWS)
 {
-    float3 normalBias = surfaceWS.normal * (directional.normalBias * _CascadeData[global.cascadeIndex].y);
+    float3 normalBias = surfaceWS.interpolatedNormal * (directional.normalBias * _CascadeData[global.cascadeIndex].y);
     //根据对应Tile阴影变换矩阵和片元的世界坐标计算Tile上的像素坐标STS
     //法线偏移法：采样的位置从surfaceWS.position偏移至surfaceWS.position + normalBias
     float3 positionSTS = mul(
@@ -185,7 +185,7 @@ float GetCascadedShadow(
 
     if (global.cascadeBlend < 1.0)
     {
-        normalBias = surfaceWS.normal *
+        normalBias = surfaceWS.interpolatedNormal *
             (directional.normalBias * _CascadeData[global.cascadeIndex + 1].y);
         positionSTS = mul(
             _DirectionalShadowMatrices[directional.tileIndex + 1],

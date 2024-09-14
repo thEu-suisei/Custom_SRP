@@ -18,10 +18,10 @@
         unity_LightmapST.xy + unity_LightmapST.zw;
     #define GI_FRAGMENT_DATA(input) input.lightMapUV
 #else
-    #define GI_ATTRIBUTE_DATA
-    #define GI_VARYINGS_DATA
-    #define TRANSFER_GI_DATA(input,output)
-    #define GI_FRAGMENT_DATA(input) 0.0
+#define GI_ATTRIBUTE_DATA
+#define GI_VARYINGS_DATA
+#define TRANSFER_GI_DATA(input,output)
+#define GI_FRAGMENT_DATA(input) 0.0
 #endif
 
 //使用Core RP Library的CBUFFER宏指令包裹材质属性，让Shader支持SRP Batcher，同时在不支持SRP Batcher的平台自动关闭它。
@@ -39,6 +39,8 @@ struct Attributes
     float3 normalOS:NORMAL;
     //纹理坐标
     float2 baseUV:TEXCOORD0;
+    //
+    float4 tangentOS:TANGENT;
     //光照贴图坐标
     GI_ATTRIBUTE_DATA
     //定义GPU Instancing使用的每个实例的ID，告诉GPU当前绘制的是哪个Object
@@ -51,10 +53,11 @@ struct Varyings
 {
     float4 positionCS:SV_POSITION;
     float3 positionWS:VAR_POSITION;
-    //世界空间下的法线信息
     float3 normalWS:VAR_NORMAL;
+    #if defined(_NORMAL_MAP)
+        float4 tangentWS:VAR_TANGENT;
+    #endif
     float2 baseUV:VAR_BASE_UV;
-    //细节纹理左边
     float2 detailUV:VAR_DETAIL_UV;
     GI_ATTRIBUTE_DATA
     //定义每一个片元对应的object的唯一ID
@@ -67,9 +70,9 @@ Varyings LitPassVertex(Attributes input)
     //从input中提取实例的ID并将其存储在其他实例化宏所依赖的全局静态变量中
     UNITY_SETUP_INSTANCE_ID(input);
     //将实例ID传递给output
-    UNITY_TRANSFER_INSTANCE_ID(input,output);
+    UNITY_TRANSFER_INSTANCE_ID(input, output);
     //全局光照
-    TRANSFER_GI_DATA(input,output);
+    TRANSFER_GI_DATA(input, output);
     //变换
     output.positionWS = TransformObjectToWorld(input.positionOS);
     output.positionCS = TransformWorldToHClip(output.positionWS);
@@ -81,13 +84,16 @@ Varyings LitPassVertex(Attributes input)
     output.positionCS.z =
         max(output.positionCS.z, output.positionCS.w * UNITY_NEAR_CLIP_VALUE);
     #endif
-    
+
     //使用TransformObjectToWorldNormal将法线从模型空间转换到世界空间，注意不能使用TransformObjectToWorld
     output.normalWS = TransformObjectToWorldNormal(input.normalOS);
-    //应用纹理ST变换
-    // output.baseUV = TransformBaseUV(input.baseUV);
+    #if defined(_NORMAL_MAP)
+        output.tangentWS = float4(TransformObjectToWorldDir(input.tangentOS.xyz), input.tangentOS.w);
+    #endif
     output.baseUV = TransformBaseUV(input.baseUV);
-    output.detailUV = TransformDetailUV(input.baseUV);
+    #if defined(_DETAIL_MAP)
+        output.detailUV = TransformDetailUV(input.baseUV);
+    #endif
     return output;
 }
 
@@ -95,13 +101,23 @@ float4 LitPassFragment(Varyings input) : SV_TARGET
 {
     //从input中提取实例的ID并将其存储在其他实例化宏所依赖的全局静态变量中
     UNITY_SETUP_INSTANCE_ID(input);
-    ClipLOD(input.positionCS.xy,unity_LODFade.x);
-    float4 base = GetBase(input.baseUV,input.detailUV);
+    ClipLOD(input.positionCS.xy, unity_LODFade.x);
+    
+    InputConfig config = GetInputConfig(input.baseUV);
+    #if defined(_MASK_MAP)
+        config.useMask = true;
+    #endif
+    #if defined(_DETAIL_MAP)
+        config.detailUV = input.detailUV;
+        config.useDetail = true;
+    #endif
+    
+    float4 base = GetBase(config);
 
     //只有在_CLIPPING关键字启用时编译该段代码
     #if defined(_CLIPPING)
     //clip函数的传入参数如果<=0则会丢弃该片元
-    clip(base.a - GetCutoff(input.baseUV));
+    clip(base.a - GetCutoff(config));
     //这里是根据我自己的clip理解修改的值
     base.a=UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial,_BaseColor).a;
     #endif
@@ -109,36 +125,42 @@ float4 LitPassFragment(Varyings input) : SV_TARGET
     //在片元着色器中构建Surface结构体，即物体表面属性，构建完成之后就可以在片元着色器中计算光照
     Surface surface;
     surface.position = input.positionWS;
+    #if defined(_NORMAL_MAP)
+        surface.normal = NormalTangentToWorld(GetNormalTS(config),input.normalWS,input.tangentWS);
+        surface.interpolatedNormal = input.normalWS;
+    #else
     surface.normal = normalize(input.normalWS);
+    surface.interpolatedNormal = surface.normal;
+    #endif
     surface.viewDirection = normalize(_WorldSpaceCameraPos - input.positionWS);
     surface.depth = -TransformWorldToView(input.positionWS).z;
     surface.color = base.rgb;
     surface.alpha = base.a;
-    surface.metallic = GetMetallic(input.baseUV);
-    surface.occlusion = GetOcclusion(input.baseUV);
-    surface.smoothness = GetSmoothness(input.baseUV, input.detailUV);
-	surface.fresnelStrength = GetFresnel(input.baseUV);
-    surface.dither=InterleavedGradientNoise(input.positionCS.xy,0);
+    surface.metallic = GetMetallic(config);
+    surface.occlusion = GetOcclusion(config);
+    surface.smoothness = GetSmoothness(config);
+    surface.fresnelStrength = GetFresnel(config);
+    surface.dither = InterleavedGradientNoise(input.positionCS.xy, 0);
     #if defined(_PREMULTIPLY_ALPHA)
         BRDF brdf = GetBRDF(surface,true);
     #else
-        BRDF brdf = GetBRDF(surface);
+    BRDF brdf = GetBRDF(surface);
     #endif
 
-    GI gi = GetGI(GI_FRAGMENT_DATA(input),surface,brdf);
-    float3 color = GetLighting(surface,brdf,gi);
+    GI gi = GetGI(GI_FRAGMENT_DATA(input), surface, brdf);
+    float3 color = GetLighting(surface, brdf, gi);
 
     //Emission
-    color += GetEmission(input.baseUV);
-    
-    return float4(color,surface.alpha);
+    color += GetEmission(config);
+
+    return float4(color, surface.alpha);
 
     //UV可视化
     // return float4(input.baseUV,0,1);
-    
+
     //法线可视化
     // return float4(input.normalWS,1);
-    
+
     //法线插值可视化
     // base.rgb = abs(length(input.normalWS) - 1.0) * 10.0;
     // base.rgb = normalize(input.normalWS);
