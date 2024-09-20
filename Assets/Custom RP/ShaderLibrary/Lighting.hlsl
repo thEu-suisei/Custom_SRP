@@ -22,19 +22,25 @@ float3 GetLighting(Surface surface, BRDF brdf, Light light)
 }
 
 //GetLighting返回光照结果，这个GetLighting只入一个surface、一个BRDF
-float3 GetLighting(Surface surfaceWS, BRDF brdf , GI gi)
+float3 GetLighting(Surface surfaceWS, BRDF brdf, GI gi)
 {
     ShadowData shadowData = GetShadowData(surfaceWS);
     shadowData.shadowMask = gi.shadowMask;
-    //使用循环，累积所有有效方向光源的光照计算结果
-    float3 color = IndirectBRDF(surfaceWS,brdf,gi.diffuse,gi.specular);
+
+    float3 color = IndirectBRDF(surfaceWS, brdf, gi.diffuse, gi.specular);
     for (int i = 0; i < GetDirectionalLightCount(); i++)
     {
         Light light = GetDirectionalLight(i, surfaceWS, shadowData);
-        color += GetLighting(surfaceWS,brdf,light);
+        color += GetLighting(surfaceWS, brdf, light);
     }
 
+    for (int j = 0; j < GetOtherLightCount(); j++)
+    {
+        Light light = GetOtherLight(j, surfaceWS, shadowData);
+        color += GetLighting(surfaceWS, brdf, light);
+    }
     return color;
 }
+
 
 #endif

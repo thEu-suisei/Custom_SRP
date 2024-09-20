@@ -164,6 +164,7 @@ float4 LitPassFragment(Varyings input) : SV_TARGET
     //法线插值可视化
     // base.rgb = abs(length(input.normalWS) - 1.0) * 10.0;
     // base.rgb = normalize(input.normalWS);
+    // return float4(base.rgb, 1.0);
 }
 
 
