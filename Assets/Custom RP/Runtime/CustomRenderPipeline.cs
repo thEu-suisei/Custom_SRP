@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.Rendering;
 
-public class CustomRenderPipeline : RenderPipeline
+public partial class CustomRenderPipeline : RenderPipeline
 {
     //摄像机渲染器实例，用于管理所有摄像机的渲染
     private CameraRenderer renderer = new CameraRenderer();
@@ -21,6 +21,7 @@ public class CustomRenderPipeline : RenderPipeline
         GraphicsSettings.useScriptableRenderPipelineBatching = useSRPBatcher;
         //设置光源颜色为线性空间
         GraphicsSettings.lightsUseLinearIntensity = true;
+        InitializeForEditor();
     }
     
     //必须重写Render函数，渲染管线实例每帧执行Render函数

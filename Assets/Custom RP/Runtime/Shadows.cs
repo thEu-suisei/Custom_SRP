@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.Experimental.GlobalIllumination;
 using UnityEngine.Rendering;
 
 //所有Shadow Map相关逻辑，其上级为Lighting类
@@ -50,7 +51,6 @@ public class Shadows
         public float slopeScaleBias;
 
         public float nearPlaneOffset;
-        
     }
 
     //虽然我们目前最大光源数为1，但依然用数组存储，因为最大数量可配置嘛~
@@ -111,7 +111,7 @@ public class Shadows
             light.shadowStrength > 0f
             //新增了烘焙阴影，所以不再跳过没有实时阴影的光源
             //&& cullingResults.GetShadowCasterBounds(visibleLightIndex, out Bounds b))
-            )
+           )
         {
             float maskChannel = -1;
             //获取烘焙信息
@@ -125,12 +125,12 @@ public class Shadows
                 useShadowMask = true;
                 maskChannel = lightBaking.occlusionMaskChannel;
             }
-            
+
             //GetShadowCasterBounds返回bool:光源影响了场景中至少一个阴影投射对象
             if (!cullingResults.GetShadowCasterBounds(visibleLightIndex, out Bounds b))
             {
                 //使用烘焙阴影，但是阴影强度>0仍会使用，所以取负即可跳过实时阴影，在计算烘焙阴影时取绝对值又可使用
-                return new Vector4(-light.shadowStrength, 0f, 0f,maskChannel);
+                return new Vector4(-light.shadowStrength, 0f, 0f, maskChannel);
             }
 
             ShadowedDirectionalLights[ShadowedDirectionalLightCount] = new ShadowedDirectionalLight()
@@ -146,7 +146,32 @@ public class Shadows
                 maskChannel);
         }
 
-        return new Vector4(0f,0f,0f,-1f);
+        return new Vector4(0f, 0f, 0f, -1f);
+    }
+
+    //类似ReserveDirectionalShadows，不过值关心阴影遮罩模式，并只需配置阴影强度和遮罩通道
+    //使用mixed&shadowsmask时，传送GPU前的数据准备
+    public Vector4 ReserveOtherShadows(Light light, int visibleLightIndex)
+    {
+        //如果light启用阴影
+        if (light.shadows != LightShadows.None && light.shadowStrength > 0f)
+        {
+            LightBakingOutput lightBaking = light.bakingOutput;
+            //如果light是mixed并且是shadowmask模式
+            if (
+                lightBaking.lightmapBakeType == LightmapBakeType.Mixed &&
+                lightBaking.mixedLightingMode == MixedLightingMode.Shadowmask
+            )
+            {
+                useShadowMask = true;
+                return new Vector4(
+                    light.shadowStrength, 0f, 0f,
+                    lightBaking.occlusionMaskChannel
+                );
+            }
+        }
+
+        return new Vector4(0f, 0f, 0f, -1f);
     }
 
     //渲染阴影贴图
@@ -169,7 +194,8 @@ public class Shadows
         }
 
         buffer.BeginSample(bufferName);
-        SetKeywords(shadowMaskKeywords, useShadowMask ? (QualitySettings.shadowmaskMode == ShadowmaskMode.Shadowmask ? 0 : 1) : -1);
+        SetKeywords(shadowMaskKeywords,
+            useShadowMask ? (QualitySettings.shadowmaskMode == ShadowmaskMode.Shadowmask ? 0 : 1) : -1);
         buffer.EndSample(bufferName);
         ExecuteBuffer();
     }
