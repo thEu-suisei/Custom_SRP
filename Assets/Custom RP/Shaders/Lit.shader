@@ -95,8 +95,9 @@ Shader "Custom RP/Lit"
             #pragma shader_feature _NORMAL_MAP
             #pragma shader_feature _MASK_MAP
             #pragma shader_feature _DETAIL_MAP
-            //多编译，会根据生成Shader的不同关键字变体
+            //PCF Directional/Point&Spot
             #pragma multi_compile _ _DIRECTIONAL_PCF3 _DIRECTIONAL_PCF5 _DIRECTIONAL_PCF7
+            #pragma multi_compile _ _OTHER_PCF3 _OTHER_PCF5 _OTHER_PCF7
             //CascadeMode多编译
             #pragma multi_compile _ _CASCADE_BLEND_SOFT _CASCADE_BLEND_DITHER
             //ShadowMask

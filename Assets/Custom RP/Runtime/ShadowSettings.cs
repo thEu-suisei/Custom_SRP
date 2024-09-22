@@ -15,7 +15,7 @@ public class ShadowSettings
     [Range(0.001f, 1f)] public float distanceFade = 0.1f;
 
     //阴影贴图的所有尺寸，使用枚举防止出现其他数值，范围为256-8192。
-    public enum TextureSize
+    public enum MapSize
     {
         _256 = 256,
         _512 = 512,
@@ -38,7 +38,7 @@ public class ShadowSettings
     [System.Serializable]
     public struct Directional
     {
-        public TextureSize atlasSize;
+        public MapSize atlasSize;
 
         //PCF Filter尺寸
         public FilterMode filter;
@@ -58,8 +58,10 @@ public class ShadowSettings
         public enum CascadeBlendMode
         {
             Hard,
+
             //软阴影混合级联需要对两个级联图进行采样，并且再加上PCF的多次采样，效率会比较低
             Soft,
+
             //抖动过度根据概率的方式只需要采样一个级联图，后续可以用AA对棋盘状阴影走样进行处理。
             Dither
         }
@@ -70,7 +72,7 @@ public class ShadowSettings
     //创建一个1024大小的Directional Shadow Map
     public Directional directional = new Directional()
     {
-        atlasSize = TextureSize._1024,
+        atlasSize = MapSize._1024,
         filter = FilterMode.PCF2x2,
         cascadeCount = 4,
         cascadeRatio1 = 0.1f,
@@ -78,5 +80,19 @@ public class ShadowSettings
         cascadeRatio3 = 0.5f,
         cascadeFade = 0.1f,
         cascadeBlend = Directional.CascadeBlendMode.Hard
+    };
+
+    [System.Serializable]
+    public struct Other
+    {
+        public MapSize atlasSize;
+
+        public FilterMode filter;
+    }
+
+    public Other other = new Other
+    {
+        atlasSize = MapSize._1024,
+        filter = FilterMode.PCF2x2
     };
 }

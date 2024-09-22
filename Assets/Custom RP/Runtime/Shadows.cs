@@ -9,14 +9,17 @@ public class Shadows
     private const string bufferName = "Shadows";
 
     //支持阴影的方向光源最大数（注意这里，我们可以有多个方向光源，但支持的阴影的最多只有4个）
-    private const int
-        maxShadowedDirectionalLightCount = 4,
-        maxCascades = 4;
+    private const int maxShadowedDirectionalLightCount = 4, maxShadowedOtherLightCount = 16;
+    private const int maxCascades = 4;
 
     //方向光源Shadow Atlas、阴影变化矩阵数组的标识
     private static int
-        dirShadowAtlasId = Shader.PropertyToID("_DirectionalShadowAtlas"),
-        dirShadowMatricesId = Shader.PropertyToID("_DirectionalShadowMatrices"),
+        dirShadowAtlasId = Shader.PropertyToID("_DirectionalShadowAtlas"), //TEXTURE
+        dirShadowMatricesId =
+            Shader.PropertyToID(
+                "_DirectionalShadowMatrices"), //数量：16(最大方向光数*最大Cascade数)个。矩阵：Directional Light对应4个Cascade的W2C矩阵
+        otherShadowAtlasId = Shader.PropertyToID("_OtherShadowAtlas"), //TEXTURE
+        otherShadowMatricesId = Shader.PropertyToID("_OtherShadowMatrices"), //World2Clip矩阵
         cascadeCountId = Shader.PropertyToID("_CascadeCount"),
         cascadeCullingSpheresId = Shader.PropertyToID("_CascadeCullingSpheres"),
         cascadeDataId = Shader.PropertyToID("_CascadeData"),
@@ -27,8 +30,13 @@ public class Shadows
         cascadeCullingSpheres = new Vector4[maxCascades],
         cascadeData = new Vector4[maxCascades];
 
+    //传递GPU ShadowAtlas的尺寸，x存储Direction.atlas大小，y存储x存储Direction.texel大小，z和w为OtherLight
+    Vector4 atlasSizes;
+
     //将世界坐标转换到阴影贴图上的像素坐标的变换矩阵
-    private static Matrix4x4[] dirShadowMatrices = new Matrix4x4[maxShadowedDirectionalLightCount * maxCascades];
+    private static Matrix4x4[]
+        dirShadowMatrices = new Matrix4x4[maxShadowedDirectionalLightCount * maxCascades],
+        otherShadowMatrices = new Matrix4x4[maxShadowedOtherLightCount];
 
     private CommandBuffer buffer = new CommandBuffer()
     {
@@ -41,7 +49,7 @@ public class Shadows
 
     private ShadowSettings settings;
 
-    //用于获取当前支持阴影的方向光源的一些信息
+    //Directional Light Struct:
     struct ShadowedDirectionalLight
     {
         //当前光源的索引，猜测该索引为CullingResults中光源的索引(也是Lighting类下的光源索引，它们都是统一的，非常不错~）
@@ -49,7 +57,6 @@ public class Shadows
 
         //可配置偏移 Configurable Biases
         public float slopeScaleBias;
-
         public float nearPlaneOffset;
     }
 
@@ -57,14 +64,33 @@ public class Shadows
     private ShadowedDirectionalLight[] ShadowedDirectionalLights =
         new ShadowedDirectionalLight[maxShadowedDirectionalLightCount];
 
+    //Other Light Struct:
+    struct ShadowedOtherLight
+    {
+        public int visibleLightIndex;
+        public float slopeScaleBias;
+        public float normalBias;
+    }
+
+    ShadowedOtherLight[] shadowedOtherLights =
+        new ShadowedOtherLight[maxShadowedOtherLightCount];
+
+
     //当前已配置完毕的方向光源数
-    private int ShadowedDirectionalLightCount;
+    private int shadowedDirLightCount, shadowedOtherLightCount;
 
     static string[] directionalFilterKeywords =
     {
         "_DIRECTIONAL_PCF3",
         "_DIRECTIONAL_PCF5",
         "_DIRECTIONAL_PCF7",
+    };
+
+    static string[] otherFilterKeywords =
+    {
+        "_OTHER_PCF3",
+        "_OTHER_PCF5",
+        "_OTHER_PCF7",
     };
 
     static string[] cascadeBlendKeywords =
@@ -89,7 +115,7 @@ public class Shadows
         this.cullingResults = cullingResults;
         this.settings = settings;
         //每帧初始时ShadowedDirectionalLightCount为0，在配置每个光源时其+1
-        ShadowedDirectionalLightCount = 0;
+        shadowedDirLightCount = shadowedOtherLightCount = 0;
         useShadowMask = false;
     }
 
@@ -99,15 +125,92 @@ public class Shadows
         buffer.Clear();
     }
 
-    //每帧执行，用于为light配置shadow altas（shadowMap）上预留一片空间来渲染阴影贴图，同时存储一些其他必要信息
-    //返回每个光源的 阴影强度/cascade索引/法线偏移/使用shadowmask的通道索引[light shadow strength, Cascade Index, light shadow normalBias, maskChannel]
-    //传递给GPU存储到Light结构体
+    /// <summary>
+    /// 设置PCF/Cascade关键字
+    /// EnableShaderKeyword(keyword):有点类似在shader中使用#define (keyword)
+    /// 在shader中启用不同的变体：#pragma multi_compile (keyword1) (keyword2) ...
+    /// </summary>
+    void SetKeywords(string[] keywords, int enabledIndex)
+    {
+        for (int i = 0; i < keywords.Length; i++)
+        {
+            if (i == enabledIndex)
+            {
+                buffer.EnableShaderKeyword(keywords[i]);
+            }
+            else
+            {
+                buffer.DisableShaderKeyword(keywords[i]);
+            }
+        }
+    }
+
+    //渲染阴影贴图
+    public void Render()
+    {
+        // Debug.Log(settings.enableShadow);
+
+        if (settings.enableShadow)
+        {
+            if (shadowedDirLightCount > 0)
+            {
+                RenderDirectionalShadows();
+            }
+            else
+            {
+                //如果因为某种原因不需要渲染阴影，我们也需要生成一张1x1大小的ShadowAtlas
+                //因为WebGL 2.0下如果某个材质包含ShadowMap但在加载时丢失了ShadowMap会报错
+                buffer.GetTemporaryRT(dirShadowAtlasId, 1, 1, 32, FilterMode.Bilinear, RenderTextureFormat.Shadowmap);
+            }
+
+            if (shadowedOtherLightCount > 0)
+            {
+                RenderOtherShadows();
+            }
+            else
+            {
+                buffer.SetGlobalTexture(otherShadowAtlasId, dirShadowAtlasId);
+            }
+        }
+
+        buffer.BeginSample(bufferName);
+        SetKeywords(shadowMaskKeywords,
+            useShadowMask ? (QualitySettings.shadowmaskMode == ShadowmaskMode.Shadowmask ? 0 : 1) : -1);
+
+        //
+        buffer.SetGlobalInt(
+            cascadeCountId,
+            shadowedDirLightCount > 0 ? settings.directional.cascadeCount : 0
+        );
+        //传递最大阴影距离，在超出范围的阴影自然消失，All Light需要
+        //Tips：下行被注释SetGlobalFloat替换成SetGlobalVector，因为当将它们作为矢量的XY组件发送到GPU时，使用一个除以值，这样我们就可以避免在着色器中进行分割，因为乘法更快。
+        //buffer.SetGlobalFloat(shadowDistanceId, settings.maxDistance);
+        float f = 1f - settings.directional.cascadeFade;
+        buffer.SetGlobalVector(
+            shadowDistanceFadeId, new Vector4(
+                1f / settings.maxDistance, 1f / settings.distanceFade,
+                1f / (1f - f * f)
+            )
+        );
+        buffer.SetGlobalVector(shadowAtlasSizeId, atlasSizes);
+
+        buffer.EndSample(bufferName);
+        ExecuteBuffer();
+    }
+
+    /// <summary>
+    /// 每帧执行，用于为light配置shadow altas（shadowMap）上预留一片空间来渲染阴影贴图，同时存储一些其他必要信息
+    /// </summary>
+    /// <param name="light">获取对象light的信息</param>
+    /// <param name="visibleLightIndex">对象light的索引</param>
+    /// <returns>传递给GPU存储到Light结构体：(阴影强度,cascade索引,法线偏移,使用shadowmask的通道索引(一张RBGA图有4通道可以存储4个光照的mask))，
+    /// 即(light shadow strength, Cascade Index, light shadow normalBias, maskChannel)</returns>
     public Vector4 ReserveDirectionalShadows(Light light, int visibleLightIndex)
     {
         //配置光源数不超过最大值
         //只配置开启阴影且阴影强度大于0的光源
         //忽略不需要渲染任何阴影的光源（通过cullingResults.GetShadowCasterBounds方法）
-        if (ShadowedDirectionalLightCount < maxShadowedDirectionalLightCount && light.shadows != LightShadows.None &&
+        if (shadowedDirLightCount < maxShadowedDirectionalLightCount && light.shadows != LightShadows.None &&
             light.shadowStrength > 0f
             //新增了烘焙阴影，所以不再跳过没有实时阴影的光源
             //&& cullingResults.GetShadowCasterBounds(visibleLightIndex, out Bounds b))
@@ -133,7 +236,7 @@ public class Shadows
                 return new Vector4(-light.shadowStrength, 0f, 0f, maskChannel);
             }
 
-            ShadowedDirectionalLights[ShadowedDirectionalLightCount] = new ShadowedDirectionalLight()
+            ShadowedDirectionalLights[shadowedDirLightCount] = new ShadowedDirectionalLight()
             {
                 visibleLightIndex = visibleLightIndex,
                 slopeScaleBias = light.shadowBias,
@@ -141,7 +244,7 @@ public class Shadows
             };
             return new Vector4(
                 light.shadowStrength,
-                settings.directional.cascadeCount * ShadowedDirectionalLightCount++,
+                settings.directional.cascadeCount * shadowedDirLightCount++,
                 light.shadowNormalBias,
                 maskChannel);
         }
@@ -149,141 +252,103 @@ public class Shadows
         return new Vector4(0f, 0f, 0f, -1f);
     }
 
-    //类似ReserveDirectionalShadows，不过值关心阴影遮罩模式，并只需配置阴影强度和遮罩通道
-    //使用mixed&shadowsmask时，传送GPU前的数据准备
+
+    /// <summary>
+    /// 使用mixed&shadowsmask时，传送GPU前的数据准备，类似ReserveDirectionalShadows，不过只关心阴影遮罩模式，并只需配置阴影强度和遮罩通道
+    /// </summary>
+    /// <param name="light"></param>
+    /// <param name="visibleLightIndex"></param>
+    /// <returns>(OtherLight的阴影强度,OtherLight索引,0f,Shadowmap中使用mask的通道(RGBA))</returns>
     public Vector4 ReserveOtherShadows(Light light, int visibleLightIndex)
     {
-        //如果light启用阴影
-        if (light.shadows != LightShadows.None && light.shadowStrength > 0f)
+        //没有阴影则返回
+        if (light.shadows == LightShadows.None || light.shadowStrength <= 0f)
         {
-            LightBakingOutput lightBaking = light.bakingOutput;
-            //如果light是mixed并且是shadowmask模式
-            if (
-                lightBaking.lightmapBakeType == LightmapBakeType.Mixed &&
-                lightBaking.mixedLightingMode == MixedLightingMode.Shadowmask
-            )
-            {
-                useShadowMask = true;
-                return new Vector4(
-                    light.shadowStrength, 0f, 0f,
-                    lightBaking.occlusionMaskChannel
-                );
-            }
+            return new Vector4(0f, 0f, 0f, -1f);
         }
 
-        return new Vector4(0f, 0f, 0f, -1f);
-    }
-
-    //渲染阴影贴图
-    public void Render()
-    {
-        // Debug.Log(settings.enableShadow);
-
-        if (settings.enableShadow)
+        //-1在GPU中为禁用
+        float maskChannel = -1f;
+        LightBakingOutput lightBaking = light.bakingOutput;
+        //如果light是mixed并且是shadowmask模式，那么烘焙阴影可以使用
+        if (
+            lightBaking.lightmapBakeType == LightmapBakeType.Mixed &&
+            lightBaking.mixedLightingMode == MixedLightingMode.Shadowmask
+        )
         {
-            if (ShadowedDirectionalLightCount > 0)
-            {
-                RenderDirectionalShadows();
-            }
-            else
-            {
-                //如果因为某种原因不需要渲染阴影，我们也需要生成一张1x1大小的ShadowAtlas
-                //因为WebGL 2.0下如果某个材质包含ShadowMap但在加载时丢失了ShadowMap会报错
-                buffer.GetTemporaryRT(dirShadowAtlasId, 1, 1, 32, FilterMode.Bilinear, RenderTextureFormat.Shadowmap);
-            }
+            useShadowMask = true;
+            maskChannel = lightBaking.occlusionMaskChannel;
         }
 
-        buffer.BeginSample(bufferName);
-        SetKeywords(shadowMaskKeywords,
-            useShadowMask ? (QualitySettings.shadowmaskMode == ShadowmaskMode.Shadowmask ? 0 : 1) : -1);
-        buffer.EndSample(bufferName);
-        ExecuteBuffer();
+        //灯光数量超过最大值||没有阴影投射物体,则不适用实时光，x分量为负
+        if (
+            shadowedOtherLightCount >= maxShadowedOtherLightCount ||
+            !cullingResults.GetShadowCasterBounds(visibleLightIndex, out Bounds b)
+        )
+        {
+            return new Vector4(-light.shadowStrength, 0f, 0f, maskChannel);
+        }
+
+        shadowedOtherLights[shadowedOtherLightCount] = new ShadowedOtherLight
+        {
+            visibleLightIndex = visibleLightIndex,
+            slopeScaleBias = light.shadowBias,
+            normalBias = light.shadowNormalBias
+        };
+
+        return new Vector4(light.shadowStrength, shadowedOtherLightCount++, 0f, maskChannel);
     }
 
-    //渲染方向光源的Shadow Map到ShadowAtlas上
+    /// <summary>
+    /// 将准备好的DirectionalLights数据传输，并渲染其ShadowAtlas
+    /// </summary>
     void RenderDirectionalShadows()
     {
-        //Shadow Atlas阴影图集的尺寸，默认为1024
+        //Shadow Atlas阴影图集的尺寸
         int atlasSize = (int)settings.directional.atlasSize;
+        atlasSizes.x = atlasSize;
+        atlasSizes.y = 1f / atlasSize;
         //使用CommandBuffer.GetTemporaryRT来申请一张RT用于Shadow Atlas，注意我们每帧自己管理其释放
-        //第一个参数为该RT的标识，第二个参数为RT的宽，第三个参数为RT的高
-        //第四个参数为depthBuffer的位宽，第五个参数为过滤模式，第六个参数为RT格式
+        //参数分别为：该RT的标识，RT的宽，RT的高，depthBuffer的位宽，过滤模式，RT格式
         //我们使用32bits的Float位宽，URP使用的是16bits
         buffer.GetTemporaryRT(dirShadowAtlasId, atlasSize, atlasSize,
             32, FilterMode.Bilinear, RenderTextureFormat.Shadowmap);
-        //告诉GPU接下来操作的RT是ShadowAtlas
         //RenderBufferLoadAction.DontCare意味着在将其设置为RenderTarget之后，我们不关心它的初始状态，不对其进行任何预处理
         //RenderBufferStoreAction.Store意味着完成这张RT上的所有渲染指令之后（要切换为下一个RenderTarget时），我们会将其存储到显存中为后续采样使用
         buffer.SetRenderTarget(dirShadowAtlasId, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store);
         //清理ShadowAtlas的DepthBuffer（我们的ShadowAtlas也只有32bits的DepthBuffer）,
-        //第一个参数true表示清除DepthBuffer，第二个false表示不清除ColorBuffer，第三个参数 Color.clear表示清除为完全透明的颜色(r=0,g=0,b=0,a=0)。
+        //设置参数分别为：true表示清除DepthBuffer，false表示不清除ColorBuffer，Color.clear表示清除为完全透明的颜色(r=0,g=0,b=0,a=0)
         buffer.ClearRenderTarget(true, false, Color.clear);
         buffer.BeginSample(bufferName);
         ExecuteBuffer();
 
         //给ShadowAtlas分Tile，大于1个光源时分成4个Tile
-        int tiles = ShadowedDirectionalLightCount * settings.directional.cascadeCount;
+        int tiles = shadowedDirLightCount * settings.directional.cascadeCount;
         int split = tiles <= 1 ? 1 : tiles <= 4 ? 2 : 4;
         int tileSize = atlasSize / split;
 
         //为每个配置好的方向光源配置其ShadowAtlas上的Tile
-        for (int i = 0; i < ShadowedDirectionalLightCount; i++)
+        for (int i = 0; i < shadowedDirLightCount; i++)
         {
             RenderDirectionalShadows(i, split, tileSize);
         }
 
-        //Cascade
-        buffer.SetGlobalInt(cascadeCountId, settings.directional.cascadeCount);
+        //Cascade：
         buffer.SetGlobalVectorArray(cascadeCullingSpheresId, cascadeCullingSpheres);
         buffer.SetGlobalVectorArray(cascadeDataId, cascadeData);
-
         //传递所有阴影变换矩阵给GPU
         buffer.SetGlobalMatrixArray(dirShadowMatricesId, dirShadowMatrices);
-        //传递最大阴影距离，好让GPU在超出范围的阴影自然消失
-        //Tips：下行被注释SetGlobalFloat替换成SetGlobalVector，因为当将它们作为矢量的XY组件发送到GPU时，使用一个除以值，这样我们就可以避免在着色器中进行分割，因为乘法更快。
-        //buffer.SetGlobalFloat(shadowDistanceId, settings.maxDistance);
-        float f = 1f - settings.directional.cascadeFade;
-        buffer.SetGlobalVector(
-            shadowDistanceFadeId,
-            new Vector4(1f / settings.maxDistance,
-                1f / settings.distanceFade,
-                1f / (1f - f * f))
-        );
+        SetKeywords(cascadeBlendKeywords, (int)settings.directional.cascadeBlend - 1);
 
-        //PCF部分：
-        //设置关键字
+        //PCF：
         SetKeywords(directionalFilterKeywords, (int)settings.directional.filter - 1);
         //传递向量，x存储atlas大小，y存储texel大小
-        buffer.SetGlobalVector(
-            shadowAtlasSizeId,
-            new Vector4(atlasSize, 1f / atlasSize));
-
-        //Cascade部分：
-        //设置关键字
-        SetKeywords(cascadeBlendKeywords, (int)settings.directional.cascadeBlend - 1);
+        // buffer.SetGlobalVector(
+        //     shadowAtlasSizeId,
+        //     new Vector4(atlasSize, 1f / atlasSize));
 
         buffer.EndSample(bufferName);
         ExecuteBuffer();
-    }
-
-    /// <summary>
-    /// 设置PCF/Cascade关键字
-    /// EnableShaderKeyword(keyword):有点类似在shader中使用#define (keyword)
-    /// 在shader中启用不同的变体：#pragma multi_compile (keyword1) (keyword2) ...
-    /// </summary>
-    void SetKeywords(string[] keywords, int enabledIndex)
-    {
-        for (int i = 0; i < keywords.Length; i++)
-        {
-            if (i == enabledIndex)
-            {
-                buffer.EnableShaderKeyword(keywords[i]);
-            }
-            else
-            {
-                buffer.DisableShaderKeyword(keywords[i]);
-            }
-        }
     }
 
     /// <summary>
@@ -358,6 +423,80 @@ public class Shadows
         }
     }
 
+
+    /// <summary>
+    /// 将准备好的OtherLights数据传输，并渲染其ShadowAtlas
+    /// </summary>
+    void RenderOtherShadows()
+    {
+        //Shadow Atlas阴影图集的尺寸
+        int atlasSize = (int)settings.other.atlasSize;
+        atlasSizes.z = atlasSize;
+        atlasSizes.w = 1f / atlasSize;
+
+        buffer.GetTemporaryRT(otherShadowAtlasId, atlasSize, atlasSize,
+            32, FilterMode.Bilinear, RenderTextureFormat.Shadowmap);
+
+        buffer.SetRenderTarget(otherShadowAtlasId, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store);
+
+        buffer.ClearRenderTarget(true, false, Color.clear);
+        buffer.BeginSample(bufferName);
+        ExecuteBuffer();
+
+        int tiles = shadowedOtherLightCount;
+        int split = tiles <= 1 ? 1 : tiles <= 4 ? 2 : 4;
+        int tileSize = atlasSize / split;
+
+        //为每个配置好的方向光源配置其ShadowAtlas上的Tile
+        for (int i = 0; i < shadowedOtherLightCount; i++)
+        {
+            RenderSpotShadows(i, split, tileSize);
+        }
+
+        //传递所有阴影变换矩阵给GPU
+        buffer.SetGlobalMatrixArray(otherShadowMatricesId, otherShadowMatrices);
+
+        //PCF：
+        SetKeywords(otherFilterKeywords, (int)settings.other.filter - 1);
+
+        buffer.EndSample(bufferName);
+        ExecuteBuffer();
+    }
+
+    /// <summary>
+    /// 渲染SpotLight阴影
+    /// </summary>
+    /// <param name="index">在OtherLights数组上的索引</param>
+    /// <param name="split">ShadowAtlas的分块数量</param>
+    /// <param name="tileSize">分块后light可以使用的分块大小</param>
+    void RenderSpotShadows(int index, int split, int tileSize)
+    {
+        ShadowedOtherLight light = shadowedOtherLights[index];
+
+        var shadowSettings = new ShadowDrawingSettings(
+            cullingResults, light.visibleLightIndex,
+            BatchCullingProjectionType.Perspective
+        );
+
+        //计算SpotLight的VP矩阵和获取splitdata
+        cullingResults.ComputeSpotShadowMatricesAndCullingPrimitives(
+            light.visibleLightIndex, out Matrix4x4 viewMatrix,
+            out Matrix4x4 projectionMatrix, out ShadowSplitData splitData
+        );
+
+        shadowSettings.splitData = splitData;
+        otherShadowMatrices[index] = ConvertToAtlasMatrix(
+            projectionMatrix * viewMatrix,
+            SetTileViewport(index, split, tileSize), split
+        );
+
+        buffer.SetViewProjectionMatrices(viewMatrix, projectionMatrix);
+        buffer.SetGlobalDepthBias(0f, light.slopeScaleBias);
+        ExecuteBuffer();
+        context.DrawShadows(ref shadowSettings);
+        buffer.SetGlobalDepthBias(0f, 0f);
+    }
+
     /// <summary>
     /// 设置级联数据
     /// </summary>
@@ -388,6 +527,13 @@ public class Shadows
         return offset;
     }
 
+    /// <summary>
+    /// 计算光照的某一层级Cascade的WorldToClip矩阵
+    /// </summary>
+    /// <param name="m"></param>
+    /// <param name="offset"></param>
+    /// <param name="split"></param>
+    /// <returns>WorldToClip矩阵</returns>
     Matrix4x4 ConvertToAtlasMatrix(Matrix4x4 m, Vector2 offset, int split)
     {
         //如果使用反向Z缓冲区，为Z取反
@@ -421,6 +567,11 @@ public class Shadows
     public void Cleanup()
     {
         buffer.ReleaseTemporaryRT(dirShadowAtlasId);
+        if (shadowedOtherLightCount > 0)
+        {
+            buffer.ReleaseTemporaryRT(otherShadowAtlasId);
+        }
+
         ExecuteBuffer();
     }
 }
