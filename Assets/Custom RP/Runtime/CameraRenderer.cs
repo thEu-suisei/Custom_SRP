@@ -29,8 +29,14 @@ public partial class CameraRenderer
     private Lighting lighting = new Lighting();
 
     //摄像机渲染器的渲染函数，在当前渲染上下文的基础上渲染当前摄像机
-    public void Render(ScriptableRenderContext context, Camera camera, bool useDynamicBatching, bool useGPUInstancing
-        , ShadowSettings shadowSettings)
+    public void Render(
+        ScriptableRenderContext context,
+        Camera camera, 
+        bool useDynamicBatching,
+        bool useGPUInstancing, 
+        bool useLightsPerObject,
+        ShadowSettings shadowSettings
+    )
     {
         //设定当前上下文和摄像机
         this.context = context;
@@ -49,11 +55,11 @@ public partial class CameraRenderer
         buffer.BeginSample(SampleName);
         ExecuteBuffer();
         //将光源信息传递给GPU，在其中也会完成阴影贴图的渲染
-        lighting.Setup(context, cullingResults, shadowSettings);
+        lighting.Setup(context, cullingResults, shadowSettings,useLightsPerObject);
         buffer.EndSample(SampleName);
         //设置当前摄像机Render Target，准备渲染摄像机画面
         Setup();
-        DrawVisibleGeometry(useDynamicBatching, useGPUInstancing);
+        DrawVisibleGeometry(useDynamicBatching, useGPUInstancing,useLightsPerObject);
         DrawUnsupportedShaders();
         DrawGizmos();
         //完成渲染后，清理光源（包括阴影）相关内存
@@ -77,8 +83,17 @@ public partial class CameraRenderer
         ExecuteBuffer();
     }
 
-    void DrawVisibleGeometry(bool useDynamicBatching, bool useGPUInstancing)
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="useDynamicBatching">动态批处理启用</param>
+    /// <param name="useGPUInstancing">GPUInstance启用</param>
+    /// <param name="useLightsPerObject">决定是否使用per-object light模式</param>
+    void DrawVisibleGeometry(bool useDynamicBatching, bool useGPUInstancing, bool useLightsPerObject)
     {
+        PerObjectData lightsPerObjectFlags =
+            useLightsPerObject ? PerObjectData.LightData | PerObjectData.LightIndices : PerObjectData.None;
+
         //决定物体绘制顺序是正交排序还是基于深度排序的配置
         var sortingSettings = new SortingSettings(camera)
         {
@@ -90,8 +105,8 @@ public partial class CameraRenderer
             //启用动态批处理
             enableDynamicBatching = useDynamicBatching,
             enableInstancing = useGPUInstancing,
-            //为每个数据对象属性设置为光照贴图   和   光照探针
-            //perObjectData是一个枚举类型，用一串二进制数来存储，比如lightmaps=1,LightProbeProxyVolume=4,lightProbe=8，|运算可以得到 0...01101(2)
+            //PerObjectData决定了哪些数据会在渲染物体对象中使用
+            //PerObjectData是一个枚举类型，用一串二进制数来存储，比如lightmaps=1,LightProbeProxyVolume=4,lightProbe=8，|运算可以得到 0...01101(2)
             perObjectData =
                 PerObjectData.Lightmaps |
                 PerObjectData.ShadowMask |
@@ -99,7 +114,8 @@ public partial class CameraRenderer
                 PerObjectData.LightProbeProxyVolume |
                 PerObjectData.OcclusionProbe |
                 PerObjectData.OcclusionProbeProxyVolume |
-                PerObjectData.ReflectionProbes
+                PerObjectData.ReflectionProbes |
+                lightsPerObjectFlags
         };
         //增加对Lit.shader的绘制支持,index代表本次DrawRenderer中该pass的绘制优先级（0最先绘制）
         drawingSettings.SetShaderPassName(1, litShaderTagId); //"LightMode"="CustomLit"

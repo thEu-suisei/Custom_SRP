@@ -7,6 +7,8 @@ using UnityEngine.Rendering;
 public class Lighting
 {
     private const string bufferName = "Lighting";
+    
+    private static string lightsPerObjectKeyword = "_LIGHTS_PER_OBJECT";
 
     //最大方向光源数量
     private const int maxDirLightCount = 4, maxOtherLightCount = 64;
@@ -56,7 +58,7 @@ public class Lighting
 
     //传入参数context用于注入CmmandBuffer指令，cullingResults用于获取当前有效的光源信息
     public void Setup(ScriptableRenderContext context, CullingResults cullingResults,
-        ShadowSettings shadowSettings)
+        ShadowSettings shadowSettings, bool useLightsPerObject)
     {
         //存储到字段方便使用
         this.cullingResults = cullingResults;
@@ -65,7 +67,7 @@ public class Lighting
         //渲染阴影相关
         shadows.Setup(context, cullingResults, shadowSettings);
         //传递cullingResults下的有效光源给GPU
-        SetupLights();
+        SetupLights(useLightsPerObject);
         //渲染阴影贴图
         shadows.Render();
         buffer.EndSample(bufferName);
@@ -94,7 +96,7 @@ public class Lighting
             1f / Mathf.Max(visibleLight.range * visibleLight.range, 0.00001f);
         otherLightPositions[index] = position;
         otherLightSpotAngles[index] = new Vector4(0f, 1f);
-        
+
         Light light = visibleLight.light;
         otherLightShadowData[index] = shadows.ReserveOtherShadows(light, index);
     }
@@ -114,17 +116,21 @@ public class Lighting
         float outerCos = Mathf.Cos(Mathf.Deg2Rad * 0.5f * visibleLight.spotAngle);
         float angleRangeInv = 1f / Mathf.Max(innerCos - outerCos, 0.001f);
         otherLightSpotAngles[index] = new Vector4(angleRangeInv, -outerCos * angleRangeInv);
-        
+
         otherLightShadowData[index] = shadows.ReserveOtherShadows(light, index);
     }
 
-    void SetupLights()
+    void SetupLights(bool useLightsPerObject)
     {
+        NativeArray<int> indexMap = useLightsPerObject ? cullingResults.GetLightIndexMap(Allocator.Temp) : default;
         NativeArray<VisibleLight> visibleLights = cullingResults.visibleLights;
         //循环配置两个Vector数组
         int dirLightCount = 0, otherLightCount = 0;
-        for (int i = 0; i < visibleLights.Length; i++)
+        int i = 0;
+        for (i = 0; i < visibleLights.Length; i++)
         {
+            //PerObjectLight索引，只设置Spot&Point Light，其他设置为-1
+            int newIndex = -1;
             VisibleLight visibleLight = visibleLights[i];
 
             //按光源类型配置
@@ -140,6 +146,7 @@ public class Lighting
                 case LightType.Point:
                     if (otherLightCount < maxOtherLightCount)
                     {
+                        newIndex = otherLightCount;
                         SetupPointLight(otherLightCount++, ref visibleLight);
                     }
 
@@ -147,11 +154,32 @@ public class Lighting
                 case LightType.Spot:
                     if (otherLightCount < maxOtherLightCount)
                     {
+                        newIndex = otherLightCount;
                         SetupSpotLight(otherLightCount++, ref visibleLight);
                     }
 
                     break;
             }
+            if (useLightsPerObject)
+            {
+                indexMap[i] = newIndex;
+            }
+        }
+
+        //对不可见的光PerObjectLight索引也设置为-1
+        if (useLightsPerObject)
+        {
+            for (;  i< indexMap.Length; i++)
+            {
+                indexMap[i] = -1;
+            }
+            cullingResults.SetLightIndexMap(indexMap);//设置前面配置的索引
+            indexMap.Dispose();//释放
+            Shader.EnableKeyword(lightsPerObjectKeyword);
+        }
+        else
+        {
+            Shader.DisableKeyword(lightsPerObjectKeyword);
         }
 
         //传递当前有效光源数、光源颜色Vector数组、光源方向Vector数组。

@@ -105,6 +105,8 @@ Shader "Custom RP/Lit"
             #pragma multi_compile _ LIGHTMAP_ON
             //LOD Cross-Fade
             #pragma multi_compile _ LOD_FADE_CROSSFADE
+            //PerObjectLight
+            #pragma multi_compile _ _LIGHTS_PER_OBJECT
             //这一指令会让Unity生成两个该Shader的变体，一个支持GPU Instancing，另一个不支持。
             #pragma multi_compile_instancing
             #pragma vertex LitPassVertex

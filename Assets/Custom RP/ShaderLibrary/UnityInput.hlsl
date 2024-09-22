@@ -15,6 +15,11 @@ CBUFFER_START(UnityPerDraw)
     float4 unity_LODFade;
     real4 unity_WorldTransformParams;
 
+    //y分量灯光数量
+    real4 unity_LightData;
+    //长度为2的数组，每个分量包含一个PerObjectLight索引，所以对象最多支持8个
+    real4 unity_LightIndices[2];
+
     //Lightmaps
     //光照贴图偏移
     float4 unity_LightmapST;
