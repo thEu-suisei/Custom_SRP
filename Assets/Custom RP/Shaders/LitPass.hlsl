@@ -18,10 +18,10 @@
         unity_LightmapST.xy + unity_LightmapST.zw;
     #define GI_FRAGMENT_DATA(input) input.lightMapUV
 #else
-#define GI_ATTRIBUTE_DATA
-#define GI_VARYINGS_DATA
-#define TRANSFER_GI_DATA(input,output)
-#define GI_FRAGMENT_DATA(input) 0.0
+    #define GI_ATTRIBUTE_DATA
+    #define GI_VARYINGS_DATA
+    #define TRANSFER_GI_DATA(input,output)
+    #define GI_FRAGMENT_DATA(input) 0.0
 #endif
 
 //使用Core RP Library的CBUFFER宏指令包裹材质属性，让Shader支持SRP Batcher，同时在不支持SRP Batcher的平台自动关闭它。

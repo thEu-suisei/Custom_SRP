@@ -15,16 +15,15 @@ public class Shadows
     //方向光源Shadow Atlas、阴影变化矩阵数组的标识
     private static int
         dirShadowAtlasId = Shader.PropertyToID("_DirectionalShadowAtlas"), //TEXTURE
-        dirShadowMatricesId =
-            Shader.PropertyToID(
-                "_DirectionalShadowMatrices"), //数量：16(最大方向光数*最大Cascade数)个。矩阵：Directional Light对应4个Cascade的W2C矩阵
+        dirShadowMatricesId = Shader.PropertyToID("_DirectionalShadowMatrices"), //数量：16(最大方向光数*最大Cascade数)个。矩阵：Directional Light对应4个Cascade的W2C矩阵
         otherShadowAtlasId = Shader.PropertyToID("_OtherShadowAtlas"), //TEXTURE
         otherShadowMatricesId = Shader.PropertyToID("_OtherShadowMatrices"), //World2Clip矩阵
         cascadeCountId = Shader.PropertyToID("_CascadeCount"),
         cascadeCullingSpheresId = Shader.PropertyToID("_CascadeCullingSpheres"),
         cascadeDataId = Shader.PropertyToID("_CascadeData"),
         shadowAtlasSizeId = Shader.PropertyToID("_ShadowAtlasSize"),
-        shadowDistanceFadeId = Shader.PropertyToID("_ShadowDistanceFade");
+        shadowDistanceFadeId = Shader.PropertyToID("_ShadowDistanceFade"),
+        shadowPancakingId = Shader.PropertyToID("_ShadowPancaking");
 
     static Vector4[]
         cascadeCullingSpheres = new Vector4[maxCascades],
@@ -318,6 +317,7 @@ public class Shadows
         //清理ShadowAtlas的DepthBuffer（我们的ShadowAtlas也只有32bits的DepthBuffer）,
         //设置参数分别为：true表示清除DepthBuffer，false表示不清除ColorBuffer，Color.clear表示清除为完全透明的颜色(r=0,g=0,b=0,a=0)
         buffer.ClearRenderTarget(true, false, Color.clear);
+        buffer.SetGlobalFloat(shadowPancakingId, 1f);
         buffer.BeginSample(bufferName);
         ExecuteBuffer();
 
@@ -439,6 +439,7 @@ public class Shadows
         buffer.SetRenderTarget(otherShadowAtlasId, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store);
 
         buffer.ClearRenderTarget(true, false, Color.clear);
+        buffer.SetGlobalFloat(shadowPancakingId,0f);
         buffer.BeginSample(bufferName);
         ExecuteBuffer();
 
@@ -473,19 +474,17 @@ public class Shadows
         ShadowedOtherLight light = shadowedOtherLights[index];
         var shadowSettings = new ShadowDrawingSettings(
             cullingResults, light.visibleLightIndex,
-            BatchCullingProjectionType.Orthographic
+            BatchCullingProjectionType.Perspective
         );
         cullingResults.ComputeSpotShadowMatricesAndCullingPrimitives(
             light.visibleLightIndex, out Matrix4x4 viewMatrix,
             out Matrix4x4 projectionMatrix, out ShadowSplitData splitData
         );
-
         shadowSettings.splitData = splitData;
         otherShadowMatrices[index] = ConvertToAtlasMatrix(
             projectionMatrix * viewMatrix,
             SetTileViewport(index, split, tileSize), split
         );
-
         buffer.SetViewProjectionMatrices(viewMatrix, projectionMatrix);
         buffer.SetGlobalDepthBias(0f, light.slopeScaleBias);
         ExecuteBuffer();
@@ -567,7 +566,6 @@ public class Shadows
         {
             buffer.ReleaseTemporaryRT(otherShadowAtlasId);
         }
-
         ExecuteBuffer();
     }
 }

@@ -10,6 +10,8 @@ struct Attributes
     UNITY_VERTEX_INPUT_INSTANCE_ID
 };
 
+bool _ShadowPancaking;
+
 //为了在片元着色器中获取实例ID，给顶点着色器的输出（即片元着色器的输入）也定义一个结构体
 //命名为Varings是因为它包含的数据可以在同一三角形的片段之间变化
 struct Varyings
@@ -29,12 +31,15 @@ Varyings ShadowCasterPassVertex(Attributes input)
     UNITY_TRANSFER_INSTANCE_ID(input,output);
     float3 positionWS = TransformObjectToWorld(input.positionOS);
     output.positionCS = TransformWorldToHClip(positionWS);
-    
-    #if UNITY_REVERSED_Z
-    output.positionCS.z = min(output.positionCS.z, output.positionCS.w * UNITY_NEAR_CLIP_VALUE);
-    #else
-    output.positionCS.z = max(output.positionCS.z, output.positionCS.w * UNITY_NEAR_CLIP_VALUE);
-    #endif
+
+    if (_ShadowPancaking)
+    {
+        #if UNITY_REVERSED_Z
+        output.positionCS.z = min(output.positionCS.z, output.positionCS.w * UNITY_NEAR_CLIP_VALUE);
+        #else
+        output.positionCS.z = max(output.positionCS.z, output.positionCS.w * UNITY_NEAR_CLIP_VALUE);
+        #endif
+    }
     //应用纹理ST变换
     output.baseUV = TransformBaseUV(input.baseUV);
     return output;
