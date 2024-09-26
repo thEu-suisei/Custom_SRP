@@ -61,7 +61,7 @@ public class Shadows
     }
 
     //虽然我们目前最大光源数为1，但依然用数组存储，因为最大数量可配置嘛~
-    private ShadowedDirectionalLight[] ShadowedDirectionalLights =
+    private ShadowedDirectionalLight[] shadowedDirectionalLights =
         new ShadowedDirectionalLight[maxShadowedDirectionalLightCount];
 
     //Other Light Struct:
@@ -177,7 +177,6 @@ public class Shadows
         SetKeywords(shadowMaskKeywords,
             useShadowMask ? (QualitySettings.shadowmaskMode == ShadowmaskMode.Shadowmask ? 0 : 1) : -1);
 
-        //
         buffer.SetGlobalInt(
             cascadeCountId,
             shadowedDirLightCount > 0 ? settings.directional.cascadeCount : 0
@@ -236,7 +235,7 @@ public class Shadows
                 return new Vector4(-light.shadowStrength, 0f, 0f, maskChannel);
             }
 
-            ShadowedDirectionalLights[shadowedDirLightCount] = new ShadowedDirectionalLight()
+            shadowedDirectionalLights[shadowedDirLightCount] = new ShadowedDirectionalLight()
             {
                 visibleLightIndex = visibleLightIndex,
                 slopeScaleBias = light.shadowBias,
@@ -360,7 +359,7 @@ public class Shadows
     void RenderDirectionalShadows(int index, int split, int tileSize)
     {
         //获取当前要配置光源的信息
-        ShadowedDirectionalLight light = ShadowedDirectionalLights[index];
+        ShadowedDirectionalLight light = shadowedDirectionalLights[index];
         //根据cullingResults和当前光源的索引来构造一个ShadowDrawingSettings
         var shadowSettings = new ShadowDrawingSettings(
             cullingResults,
@@ -472,13 +471,10 @@ public class Shadows
     void RenderSpotShadows(int index, int split, int tileSize)
     {
         ShadowedOtherLight light = shadowedOtherLights[index];
-
         var shadowSettings = new ShadowDrawingSettings(
             cullingResults, light.visibleLightIndex,
-            BatchCullingProjectionType.Perspective
+            BatchCullingProjectionType.Orthographic
         );
-
-        //计算SpotLight的VP矩阵和获取splitdata
         cullingResults.ComputeSpotShadowMatricesAndCullingPrimitives(
             light.visibleLightIndex, out Matrix4x4 viewMatrix,
             out Matrix4x4 projectionMatrix, out ShadowSplitData splitData
@@ -563,7 +559,7 @@ public class Shadows
         return m;
     }
 
-    //完成因ShadowAtlas所有工作后，释放ShadowAtlas RT
+//完成因ShadowAtlas所有工作后，释放ShadowAtlas RT
     public void Cleanup()
     {
         buffer.ReleaseTemporaryRT(dirShadowAtlasId);
