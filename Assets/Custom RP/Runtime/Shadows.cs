@@ -2,6 +2,7 @@ using System;
 using UnityEngine;
 using UnityEngine.Experimental.GlobalIllumination;
 using UnityEngine.Rendering;
+using LightType = UnityEngine.LightType;
 
 //所有Shadow Map相关逻辑，其上级为Lighting类
 public class Shadows
@@ -73,6 +74,7 @@ public class Shadows
         public int visibleLightIndex;
         public float slopeScaleBias;
         public float normalBias;
+        public bool isPoint;
     }
 
     ShadowedOtherLight[] shadowedOtherLights =
@@ -282,9 +284,12 @@ public class Shadows
             maskChannel = lightBaking.occlusionMaskChannel;
         }
 
+        //一个点光源将会占用6个tile
+        bool isPoint = light.type == LightType.Point;
+        int newLightCount = shadowedOtherLightCount + (isPoint ? 6 : 1);
         //灯光数量超过最大值||没有阴影投射物体,则不适用实时光，x分量为负
         if (
-            shadowedOtherLightCount >= maxShadowedOtherLightCount ||
+            newLightCount >= maxShadowedOtherLightCount ||
             !cullingResults.GetShadowCasterBounds(visibleLightIndex, out Bounds b)
         )
         {
@@ -295,10 +300,13 @@ public class Shadows
         {
             visibleLightIndex = visibleLightIndex,
             slopeScaleBias = light.shadowBias,
-            normalBias = light.shadowNormalBias
+            normalBias = light.shadowNormalBias,
+            isPoint = isPoint
         };
 
-        return new Vector4(light.shadowStrength, shadowedOtherLightCount++, 0f, maskChannel);
+        Vector4 data = new Vector4(light.shadowStrength, shadowedOtherLightCount, isPoint ? 1f : 0f, maskChannel);
+        shadowedOtherLightCount = newLightCount;
+        return data;
     }
 
     /// <summary>
@@ -452,9 +460,18 @@ public class Shadows
         int tileSize = atlasSize / split;
 
         //为每个配置好的方向光源配置其ShadowAtlas上的Tile
-        for (int i = 0; i < shadowedOtherLightCount; i++)
+        for (int i = 0; i < shadowedOtherLightCount;)
         {
-            RenderSpotShadows(i, split, tileSize);
+            if (shadowedOtherLights[i].isPoint)
+            {
+                RenderPointShadows(i,split,tileSize);
+                i += 6;
+            }
+            else
+            {
+                RenderSpotShadows(i, split, tileSize);
+                i += 1;
+            }
         }
 
         //传递所有阴影变换矩阵给GPU
@@ -493,7 +510,7 @@ public class Shadows
         float bias = light.normalBias * filterSize * 1.4142136f;
         Vector2 offset = SetTileViewport(index, split, tileSize);
         float tileScale = 1f / split;
-        SetOtherTileData(index, offset, tileScale , bias);
+        SetOtherTileData(index, offset, tileScale, bias);
         otherShadowMatrices[index] = ConvertToAtlasMatrix(
             projectionMatrix * viewMatrix, offset, tileScale
         );
@@ -502,6 +519,57 @@ public class Shadows
         ExecuteBuffer();
         context.DrawShadows(ref shadowSettings);
         buffer.SetGlobalDepthBias(0f, 0f);
+    }
+    
+    /// <summary>
+    /// 渲染PointLight阴影
+    /// </summary>
+    /// <param name="index">在OtherLights数组上的索引</param>
+    /// <param name="split">ShadowAtlas的分块数量</param>
+    /// <param name="tileSize">分块后light可以使用的分块大小</param>
+    void RenderPointShadows(int index, int split, int tileSize)
+    {
+        ShadowedOtherLight light = shadowedOtherLights[index];
+        var shadowSettings = new ShadowDrawingSettings(
+            cullingResults, light.visibleLightIndex,
+            BatchCullingProjectionType.Perspective
+        );
+        
+        //使用ProjMat的第一个元素作为2tanθ
+        float texelSize = 2f / tileSize;
+        float filterSize = texelSize * ((float)settings.other.filter + 1f);
+        float bias = light.normalBias * filterSize * 1.4142136f;
+        float tileScale = 1f / split;
+        
+        //FOV偏移（略微增大），用于解决点光源实时阴影的 图块边界采样导致的阴影不连续问题，
+        float fovBias =
+            Mathf.Atan(1f + bias + filterSize) * Mathf.Rad2Deg * 2f - 90f;
+        
+        //渲染6次
+        for (int i = 0; i < 6; i++)
+        {
+            //CubemapFace类型来选择渲染哪个面
+            cullingResults.ComputePointShadowMatricesAndCullingPrimitives(
+                light.visibleLightIndex,(CubemapFace)i,fovBias, out Matrix4x4 viewMatrix,
+                out Matrix4x4 projectionMatrix, out ShadowSplitData splitData
+            );
+            viewMatrix.m11 = -viewMatrix.m11;
+            viewMatrix.m12 = -viewMatrix.m12;
+            viewMatrix.m13 = -viewMatrix.m13;
+            shadowSettings.splitData = splitData;
+
+            int tileIndex = index + i;
+            Vector2 offset = SetTileViewport(tileIndex, split, tileSize);
+            SetOtherTileData(tileIndex, offset, tileScale, bias);
+            otherShadowMatrices[tileIndex] = ConvertToAtlasMatrix(
+                projectionMatrix * viewMatrix, offset, tileScale
+            );
+            buffer.SetViewProjectionMatrices(viewMatrix, projectionMatrix);
+            buffer.SetGlobalDepthBias(0f, light.slopeScaleBias);
+            ExecuteBuffer();
+            context.DrawShadows(ref shadowSettings);
+            buffer.SetGlobalDepthBias(0f, 0f);
+        }
     }
 
     /// <summary>

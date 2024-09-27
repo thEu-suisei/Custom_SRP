@@ -6,6 +6,7 @@
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary//Shadow/ShadowSamplingTent.hlsl"//定义了不同filterMode的filter大小和采样设置
 
 
+
 #if defined(_DIRECTIONAL_PCF3)
     #define DIRECTIONAL_FILTER_SAMPLES 4
     #define DIRECTIONAL_FILTER_SETUP SampleShadow_ComputeSamples_Tent_3x3
@@ -49,7 +50,7 @@ CBUFFER_START(_CustonShadows)
     float4 _CascadeData[MAX_CASCADE_COUNT];
     float4x4 _DirectionalShadowMatrices[MAX_SHADOWED_DIRECTIONAL_LIGHT_COUNT * MAX_CASCADE_COUNT];
     float4x4 _OtherShadowMatrices[MAX_SHADOWED_OTHER_LIGHT_COUNT];
-    float4 _OtherShadowTiles[MAX_SHADOWED_OTHER_LIGHT_COUNT];//xyz：确定采样边界,w:法线偏移
+    float4 _OtherShadowTiles[MAX_SHADOWED_OTHER_LIGHT_COUNT]; //xyz：确定采样边界,w:法线偏移
     float4 _ShadowAtlasSize;
     float4 _ShadowDistanceFade;
 CBUFFER_END
@@ -88,9 +89,21 @@ struct OtherShadowData
 {
     float strength;
     int tileIndex;
+    bool isPoint;
     int shadowMaskChannel;
     float3 lightPositionWS;
+    float3 lightDirectionWS;
     float3 spotDirectionWS;
+};
+
+static const float3 pointShadowPlanes[6] =
+{
+    float3(-1.0, 0.0, 0.0),
+    float3(1.0, 0.0, 0.0),
+    float3(0.0, -1.0, 0.0),
+    float3(0.0, 1.0, 0.0),
+    float3(0.0, 0.0, -1.0),
+    float3(0.0, 0.0, 1.0)
 };
 
 
@@ -207,7 +220,7 @@ float FilterOtherShadow(float3 positionSTS, float3 bounds)
         }
         return shadow;
     #else
-        return SampleOtherShadowAtlas(positionSTS,bounds);
+    return SampleOtherShadowAtlas(positionSTS, bounds);
     #endif
 }
 
@@ -272,6 +285,7 @@ float GetBakedShadow(ShadowMask mask, int channel, float strength)
 
 //GetShadowAttenuation()→
 //将烘焙阴影和实时阴影混合
+
 float MixBakedAndRealtimeShadows(ShadowData global, float shadow, int shadowMaskChannel, float strength)
 {
     float baked = GetBakedShadow(global.shadowMask, shadowMaskChannel);
@@ -315,14 +329,24 @@ float GetDirectionalShadowAttenuation(
     return shadow;
 }
 
+//实时阴影，采样Shadowmap
 float GetOtherShadow(OtherShadowData other, ShadowData global, Surface surfaceWS)
 {
-    float4 tileData = _OtherShadowTiles[other.tileIndex];
+    float tileIndex = other.tileIndex;
+    float3 lightPlane = other.spotDirectionWS;
+    if (other.isPoint)
+    {
+        //CubeMapFaceID会根据入射光方向的 +X、−X、+Y、−Y、+Z、−Z，返回一个0~5的faceID，作为采样图块索引偏移
+        float faceOffset = CubeMapFaceID(-other.lightDirectionWS);
+        tileIndex += faceOffset;
+        lightPlane = pointShadowPlanes[faceOffset];
+    }
+    float4 tileData = _OtherShadowTiles[tileIndex];
     float3 surfaceToLight = other.lightPositionWS - surfaceWS.position;
-    float distanceToLightPlane = dot(surfaceToLight, other.spotDirectionWS);
-    float3 normalBias = surfaceWS.interpolatedNormal * (distanceToLightPlane*tileData.w);
+    float distanceToLightPlane = dot(surfaceToLight, lightPlane);
+    float3 normalBias = surfaceWS.interpolatedNormal * (distanceToLightPlane * tileData.w);
     float4 positionSTS = mul(
-        _OtherShadowMatrices[other.tileIndex],
+        _OtherShadowMatrices[tileIndex],
         float4(surfaceWS.position + normalBias, 1.0)
     );
     return FilterOtherShadow(positionSTS.xyz / positionSTS.w, tileData.xyz);
