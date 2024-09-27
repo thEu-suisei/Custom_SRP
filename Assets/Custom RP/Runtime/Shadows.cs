@@ -15,9 +15,12 @@ public class Shadows
     //方向光源Shadow Atlas、阴影变化矩阵数组的标识
     private static int
         dirShadowAtlasId = Shader.PropertyToID("_DirectionalShadowAtlas"), //TEXTURE
-        dirShadowMatricesId = Shader.PropertyToID("_DirectionalShadowMatrices"), //数量：16(最大方向光数*最大Cascade数)个。矩阵：Directional Light对应4个Cascade的W2C矩阵
+        dirShadowMatricesId =
+            Shader.PropertyToID(
+                "_DirectionalShadowMatrices"), //数量：16(最大方向光数*最大Cascade数)个。矩阵：Directional Light对应4个Cascade的W2C矩阵
         otherShadowAtlasId = Shader.PropertyToID("_OtherShadowAtlas"), //TEXTURE
         otherShadowMatricesId = Shader.PropertyToID("_OtherShadowMatrices"), //World2Clip矩阵
+        otherShadowTilesId = Shader.PropertyToID("_OtherShadowTiles"), //NormalBias
         cascadeCountId = Shader.PropertyToID("_CascadeCount"),
         cascadeCullingSpheresId = Shader.PropertyToID("_CascadeCullingSpheres"),
         cascadeDataId = Shader.PropertyToID("_CascadeData"),
@@ -25,9 +28,10 @@ public class Shadows
         shadowDistanceFadeId = Shader.PropertyToID("_ShadowDistanceFade"),
         shadowPancakingId = Shader.PropertyToID("_ShadowPancaking");
 
-    static Vector4[]
+    private static Vector4[]
         cascadeCullingSpheres = new Vector4[maxCascades],
-        cascadeData = new Vector4[maxCascades];
+        cascadeData = new Vector4[maxCascades],
+        otherShadowTiles = new Vector4[maxShadowedOtherLightCount]; //NormalBias
 
     //传递GPU ShadowAtlas的尺寸，x存储Direction.atlas大小，y存储x存储Direction.texel大小，z和w为OtherLight
     Vector4 atlasSizes;
@@ -369,9 +373,9 @@ public class Shadows
         int cascadeCount = settings.directional.cascadeCount;
         int tileOffset = index * cascadeCount;
         Vector3 ratios = settings.directional.CascadeRatios;
-
         //剔除偏差因子
         float cullingFactor = Mathf.Max(0f, 0.8f - settings.directional.cascadeFade);
+        float tileScale = 1f / split;
 
         for (int i = 0; i < cascadeCount; i++)
         {
@@ -402,7 +406,7 @@ public class Shadows
                 ConvertToAtlasMatrix(
                     projectionMatrix * viewMatrix,
                     SetTileViewport(tileIndex, split, tileSize),
-                    split);
+                    tileScale);
             //将当前VP矩阵设置为计算出的VP矩阵，准备渲染阴影贴图
             buffer.SetViewProjectionMatrices(viewMatrix, projectionMatrix);
 
@@ -439,7 +443,7 @@ public class Shadows
         buffer.SetRenderTarget(otherShadowAtlasId, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store);
 
         buffer.ClearRenderTarget(true, false, Color.clear);
-        buffer.SetGlobalFloat(shadowPancakingId,0f);
+        buffer.SetGlobalFloat(shadowPancakingId, 0f);
         buffer.BeginSample(bufferName);
         ExecuteBuffer();
 
@@ -455,6 +459,7 @@ public class Shadows
 
         //传递所有阴影变换矩阵给GPU
         buffer.SetGlobalMatrixArray(otherShadowMatricesId, otherShadowMatrices);
+        buffer.SetGlobalVectorArray(otherShadowTilesId, otherShadowTiles);
 
         //PCF：
         SetKeywords(otherFilterKeywords, (int)settings.other.filter - 1);
@@ -481,9 +486,16 @@ public class Shadows
             out Matrix4x4 projectionMatrix, out ShadowSplitData splitData
         );
         shadowSettings.splitData = splitData;
+
+        //使用ProjMat的第一个元素作为2tanθ
+        float texelSize = 2f / (tileSize * projectionMatrix.m00);
+        float filterSize = texelSize * ((float)settings.other.filter + 1f);
+        float bias = light.normalBias * filterSize * 1.4142136f;
+        Vector2 offset = SetTileViewport(index, split, tileSize);
+        float tileScale = 1f / split;
+        SetOtherTileData(index, offset, tileScale , bias);
         otherShadowMatrices[index] = ConvertToAtlasMatrix(
-            projectionMatrix * viewMatrix,
-            SetTileViewport(index, split, tileSize), split
+            projectionMatrix * viewMatrix, offset, tileScale
         );
         buffer.SetViewProjectionMatrices(viewMatrix, projectionMatrix);
         buffer.SetGlobalDepthBias(0f, light.slopeScaleBias);
@@ -523,13 +535,31 @@ public class Shadows
     }
 
     /// <summary>
-    /// 计算光照的某一层级Cascade的WorldToClip矩阵
+    /// 设置Tiles数据，xy为边界，z是边界缩放比例，w为bias
+    /// </summary>
+    /// <param name="index">OtherLight Index</param>
+    /// <param name="offset">限定采样范围</param>
+    /// <param name="scale">限定采样范围</param>
+    /// <param name="bias">偏移</param>
+    void SetOtherTileData(int index, Vector2 offset, float scale, float bias)
+    {
+        float border = atlasSizes.w * 0.5f;
+        Vector4 data;
+        data.x = offset.x * scale + border;
+        data.y = offset.y * scale + border;
+        data.z = scale - border - border;
+        data.w = bias;
+        otherShadowTiles[index] = data;
+    }
+
+    /// <summary>
+    /// 计算光照的某一层级Cascade的WorldToClip矩阵?
     /// </summary>
     /// <param name="m"></param>
     /// <param name="offset"></param>
     /// <param name="split"></param>
     /// <returns>WorldToClip矩阵</returns>
-    Matrix4x4 ConvertToAtlasMatrix(Matrix4x4 m, Vector2 offset, int split)
+    Matrix4x4 ConvertToAtlasMatrix(Matrix4x4 m, Vector2 offset, float scale)
     {
         //如果使用反向Z缓冲区，为Z取反
         if (SystemInfo.usesReversedZBuffer)
@@ -542,7 +572,6 @@ public class Shadows
 
         //光源裁剪空间坐标范围为[-1,1]，而纹理坐标和深度都是[0,1]，因此，我们将裁剪空间坐标转化到[0,1]内
         //然后将[0,1]下的x,y偏移到光源对应的Tile上
-        float scale = 1f / split;
         m.m00 = (0.5f * (m.m00 + m.m30) + offset.x * m.m30) * scale;
         m.m01 = (0.5f * (m.m01 + m.m31) + offset.x * m.m31) * scale;
         m.m02 = (0.5f * (m.m02 + m.m32) + offset.x * m.m32) * scale;
@@ -566,6 +595,7 @@ public class Shadows
         {
             buffer.ReleaseTemporaryRT(otherShadowAtlasId);
         }
+
         ExecuteBuffer();
     }
 }
