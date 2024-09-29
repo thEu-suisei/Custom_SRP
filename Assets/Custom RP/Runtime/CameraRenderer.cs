@@ -10,23 +10,20 @@ public partial class CameraRenderer
     private static ShaderTagId unlitShaderTagId = new ShaderTagId("SRPDefaultUnlit"),
         litShaderTagId = new ShaderTagId("CustomLit");
 
+    //PostProcessing:如果使用处理，则设置中间缓存区用来渲染（不再直接渲染到相机缓冲区）
+    private static int frameBufferId = Shader.PropertyToID("_CameraFrameBuffer");
+
 
     private CommandBuffer buffer = new CommandBuffer()
     {
         name = bufferName
     };
-
-    //存放当前渲染上下文
+    
     private ScriptableRenderContext context;
-
-    //存放摄像机渲染器当前应该渲染的摄像机
     private Camera camera;
-
-    //存放摄像机剔除结果
     private CullingResults cullingResults;
-
-    //存放光源处理类
     private Lighting lighting = new Lighting();
+    private PostFXStack postFXStack = new PostFXStack();
 
     //摄像机渲染器的渲染函数，在当前渲染上下文的基础上渲染当前摄像机
     public void Render(
@@ -35,7 +32,8 @@ public partial class CameraRenderer
         bool useDynamicBatching,
         bool useGPUInstancing, 
         bool useLightsPerObject,
-        ShadowSettings shadowSettings
+        ShadowSettings shadowSettings,
+        PostFXSettings postFXSettings
     )
     {
         //设定当前上下文和摄像机
@@ -56,14 +54,20 @@ public partial class CameraRenderer
         ExecuteBuffer();
         //将光源信息传递给GPU，在其中也会完成阴影贴图的渲染
         lighting.Setup(context, cullingResults, shadowSettings,useLightsPerObject);
+        postFXStack.Setup(context,camera,postFXSettings);
         buffer.EndSample(SampleName);
         //设置当前摄像机Render Target，准备渲染摄像机画面
         Setup();
         DrawVisibleGeometry(useDynamicBatching, useGPUInstancing,useLightsPerObject);
         DrawUnsupportedShaders();
-        DrawGizmos();
-        //完成渲染后，清理光源（包括阴影）相关内存
-        lighting.Cleanup();
+        DrawGizmosBeforeFX();
+        if (postFXStack.IsActive)
+        {
+            postFXStack.Render(frameBufferId);
+        }
+        DrawGizmosAfterFX();
+        //完成渲染后，清理光源、后处理中间渲染缓存 等内存
+        Cleanup();
         Submit();
     }
 
@@ -73,6 +77,17 @@ public partial class CameraRenderer
         //同时也会设置当前的Render Target，这样ClearRenderTarget可以直接清除Render Target中的数据，而不是通过绘制一个全屏的quad来达到同样效果（比较费）
         context.SetupCameraProperties(camera);
         CameraClearFlags flags = camera.clearFlags;
+
+        if (postFXStack.IsActive)
+        {
+            if (flags > CameraClearFlags.Color)
+            {
+                flags = CameraClearFlags.Color;
+            }
+            buffer.GetTemporaryRT(frameBufferId,camera.pixelWidth,camera.pixelHeight,32,FilterMode.Bilinear,RenderTextureFormat.Default);
+            buffer.SetRenderTarget(frameBufferId,RenderBufferLoadAction.DontCare,RenderBufferStoreAction.Store);
+        }
+        
         //清除当前摄像机Render Target中的内容,包括深度和颜色，ClearRenderTarget内部会Begin/EndSample(buffer.name)
         buffer.ClearRenderTarget(flags <= CameraClearFlags.Depth, flags == CameraClearFlags.Color,
             flags == CameraClearFlags.Color ? camera.backgroundColor.linear : Color.clear);
@@ -84,7 +99,7 @@ public partial class CameraRenderer
     }
 
     /// <summary>
-    /// 
+    /// 渲染不透明物体
     /// </summary>
     /// <param name="useDynamicBatching">动态批处理启用</param>
     /// <param name="useGPUInstancing">GPUInstance启用</param>
@@ -165,5 +180,14 @@ public partial class CameraRenderer
         }
 
         return false;
+    }
+
+    void Cleanup()
+    {
+        lighting.Cleanup();
+        if (postFXStack.IsActive)
+        {
+            buffer.ReleaseTemporaryRT(frameBufferId);
+        }
     }
 }
