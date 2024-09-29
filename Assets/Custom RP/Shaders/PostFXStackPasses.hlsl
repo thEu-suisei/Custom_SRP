@@ -2,11 +2,16 @@
 #ifndef CUSTOM_POST_FX_PASSES_INCLUDED
 #define CUSTOM_POST_FX_PASSES_INCLUDED
 
+#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Filtering.hlsl"
+
 TEXTURE2D(_PostFXSource);
+TEXTURE2D(_PostFXSource2);
 SAMPLER(sampler_linear_clamp);
 
 float4 _ProjectionParams;
 float4 _PostFXSource_TexelSize;
+
+bool _BloomBicubicUpsampling;
 
 float4 GetSourceTexelSize()
 {
@@ -18,11 +23,24 @@ float4 GetSource(float2 screenUV)
     return SAMPLE_TEXTURE2D_LOD(_PostFXSource, sampler_linear_clamp, screenUV, 0);
 }
 
+float4 GetSource2(float2 screenUV)
+{
+    return SAMPLE_TEXTURE2D_LOD(_PostFXSource2, sampler_linear_clamp, screenUV, 0);
+}
+
 struct Varyings
 {
     float4 positionCS:SV_POSITION;
     float2 screenUV:VAR_SCREEN_UV;
 };
+
+float4 GetSourceBicubic(float2 screenUV)
+{
+    return SampleTexture2DBicubic(
+        TEXTURE2D_ARGS(_PostFXSource, sampler_linear_clamp), screenUV,
+        _PostFXSource_TexelSize.zwxy, 1.0, 0.0
+    );
+}
 
 //顶点着色器
 Varyings DefaultPassVertex(uint vertexID: SV_VertexID)
@@ -44,11 +62,23 @@ Varyings DefaultPassVertex(uint vertexID: SV_VertexID)
     return output;
 }
 
-float4 CopyPassFragment(Varyings input):SV_TARGET
+//加法模糊(双立方上采样)
+float4 BloomCombinePassFragment(Varyings input) : SV_TARGET
 {
-    return GetSource(input.screenUV);
+    float3 lowRes;
+    if (_BloomBicubicUpsampling)
+    {
+        lowRes = GetSourceBicubic(input.screenUV).rgb;
+    }
+    else
+    {
+        lowRes = GetSource(input.screenUV).rgb;
+    }
+    float3 highRes = GetSource2(input.screenUV).rgb;
+    return float4(lowRes + highRes, 1.0);
 }
 
+//水平高斯滤波
 float4 BloomHorizontalPassFragment(Varyings input):SV_TARGET
 {
     float3 color = 0.0;
@@ -86,5 +116,11 @@ float4 BloomVerticalPassFragment(Varyings input) : SV_TARGET
     }
     return float4(color, 1.0);
 }
+
+float4 CopyPassFragment(Varyings input):SV_TARGET
+{
+    return GetSource(input.screenUV);
+}
+
 
 #endif

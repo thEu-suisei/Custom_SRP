@@ -14,9 +14,13 @@ public class PostFXSettings : ScriptableObject
         [Range(0f, 16f)] public int maxIterations;
 
         [Min(1f)] public int downscaleLimit;
+        
+        //是否启用双立方上采样(Bicubic Upsampling)
+        public bool bicubicUpsampling;
     }
 
     [SerializeField] BloomSettings bloom = default;
+    
 
     public BloomSettings Bloom => bloom;
 
