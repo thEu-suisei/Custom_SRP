@@ -17,6 +17,15 @@ public class PostFXSettings : ScriptableObject
         
         //是否启用双立方上采样(Bicubic Upsampling)
         public bool bicubicUpsampling;
+    
+        [Min(0f)]
+        public float threshold;
+
+        [Range(0f, 1f)]
+        public float thresholdKnee;
+        
+        [Min(0f)]
+        public float intensity;
     }
 
     [SerializeField] BloomSettings bloom = default;

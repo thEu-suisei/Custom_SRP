@@ -10,6 +10,8 @@ SAMPLER(sampler_linear_clamp);
 
 float4 _ProjectionParams;
 float4 _PostFXSource_TexelSize;
+float4 _BloomThreshold;
+float _BloomIntensity;
 
 bool _BloomBicubicUpsampling;
 
@@ -42,6 +44,19 @@ float4 GetSourceBicubic(float2 screenUV)
     );
 }
 
+float3 ApplyBloomThreshold(float3 color)
+{
+    float brightness = Max3(color.r, color.g, color.b);
+    float soft = brightness + _BloomThreshold.y;
+    soft = clamp(soft, 0.0, _BloomThreshold.z);
+    soft = soft * soft * _BloomThreshold.w;
+    float contribution = max(soft, brightness - _BloomThreshold.x);
+    contribution /= max(brightness, 0.00001);
+    return color * contribution;
+}
+
+
+//着色器
 //顶点着色器
 Varyings DefaultPassVertex(uint vertexID: SV_VertexID)
 {
@@ -62,6 +77,13 @@ Varyings DefaultPassVertex(uint vertexID: SV_VertexID)
     return output;
 }
 
+//预滤波片段着色器，即第一次的半分辨率滤波
+float4 BloomPrefilterPassFragment(Varyings input) : SV_TARGET
+{
+    float3 color = ApplyBloomThreshold(GetSource(input.screenUV).rgb);
+    return float4(color, 1.0);
+}
+
 //加法模糊(双立方上采样)
 float4 BloomCombinePassFragment(Varyings input) : SV_TARGET
 {
@@ -75,7 +97,7 @@ float4 BloomCombinePassFragment(Varyings input) : SV_TARGET
         lowRes = GetSource(input.screenUV).rgb;
     }
     float3 highRes = GetSource2(input.screenUV).rgb;
-    return float4(lowRes + highRes, 1.0);
+    return float4(lowRes * _BloomIntensity + highRes, 1.0);
 }
 
 //水平高斯滤波

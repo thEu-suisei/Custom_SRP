@@ -14,6 +14,7 @@ public partial class PostFXStack
     //枚举顺序与ShaderPass顺序一致
     enum Pass
     {
+        BloomPrefilter,
         BloomCombine,
         BloomHorizontal,
         BloomVertical,
@@ -29,6 +30,9 @@ public partial class PostFXStack
 
     private int
         bloomBucibicUpsamplingId = Shader.PropertyToID("_BloomBicubicUpsampling"),
+        bloomPrefilterId = Shader.PropertyToID("_BloomPrefilter"),//在第一次滤波采样一半分辨率，预滤波
+        bloomThresholdId = Shader.PropertyToID("_BloomThreshold"),
+        bloomIntensityId = Shader.PropertyToID("_BloomIntensity"),
         fxSourceId = Shader.PropertyToID("_PostFXSource"),
         fxSource2Id = Shader.PropertyToID("_PostFXSource2");
 
@@ -88,15 +92,32 @@ public partial class PostFXStack
         PostFXSettings.BloomSettings bloom = settings.Bloom;
         int width = camera.pixelWidth / 2, height = camera.pixelHeight / 2;
 
-        if (bloom.maxIterations == 0 || height < bloom.downscaleLimit || width < bloom.downscaleLimit)
+        if (bloom.maxIterations == 0 || bloom.intensity <= 0f || height < bloom.downscaleLimit*2 || width < bloom.downscaleLimit*2)
         {
             Draw(sourceId, BuiltinRenderTextureType.CameraTarget, Pass.Copy);
             buffer.EndSample("Bloom");
             return;
         }
+        
+        //将阈值计算公式的各个分量分别存到Vector4中
+        Vector4 threshold;
+        threshold.x = Mathf.GammaToLinearSpace(bloom.threshold);
+        threshold.y = threshold.x * bloom.thresholdKnee;
+        threshold.z = 2f * threshold.y;
+        threshold.w = 0.25f / (threshold.y + 0.00001f);
+        threshold.y -= threshold.x;
+        buffer.SetGlobalVector(bloomThresholdId, threshold);
 
         RenderTextureFormat format = RenderTextureFormat.Default;
-        int fromId = sourceId, toId = bloomPyramidId + 1;
+        
+        //第一次滤波使用一半分辨率
+        buffer.GetTemporaryRT(bloomPrefilterId,width,height,0,FilterMode.Bilinear,format);
+        Draw(sourceId,bloomPrefilterId,Pass.BloomPrefilter);
+        width /= 2;
+        height /= 2;
+        
+        //第二次以上滤波
+        int fromId = bloomPrefilterId, toId = bloomPyramidId + 1;
 
         int i;
         for (i = 0; i < bloom.maxIterations; i++)
@@ -116,7 +137,10 @@ public partial class PostFXStack
             width /= 2;
             height /= 2;
         }
+        
+        buffer.ReleaseTemporaryRT(bloomPrefilterId);
 
+        buffer.SetGlobalFloat(bloomIntensityId, 1f);
         buffer.SetGlobalFloat(bloomBucibicUpsamplingId, bloom.bicubicUpsampling ? 1f : 0f);
         if (i > 1)
         {
@@ -137,7 +161,8 @@ public partial class PostFXStack
         {
             buffer.ReleaseTemporaryRT(bloomPyramidId);
         }
-
+        
+        buffer.SetGlobalFloat(bloomIntensityId, bloom.intensity);
         buffer.SetGlobalTexture(fxSource2Id, sourceId);
         Draw(fromId, BuiltinRenderTextureType.CameraTarget, Pass.BloomCombine);
         buffer.ReleaseTemporaryRT(fromId);
