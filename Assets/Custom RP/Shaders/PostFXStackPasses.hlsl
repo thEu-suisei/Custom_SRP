@@ -2,6 +2,7 @@
 #ifndef CUSTOM_POST_FX_PASSES_INCLUDED
 #define CUSTOM_POST_FX_PASSES_INCLUDED
 
+#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Filtering.hlsl"
 
 TEXTURE2D(_PostFXSource);
@@ -44,6 +45,7 @@ float4 GetSourceBicubic(float2 screenUV)
     );
 }
 
+//滤波阈值，根据RGB最大值判断亮度，将明亮的区域Bloom，暗的区域则不会
 float3 ApplyBloomThreshold(float3 color)
 {
     float brightness = Max3(color.r, color.g, color.b);
@@ -81,6 +83,28 @@ Varyings DefaultPassVertex(uint vertexID: SV_VertexID)
 float4 BloomPrefilterPassFragment(Varyings input) : SV_TARGET
 {
     float3 color = ApplyBloomThreshold(GetSource(input.screenUV).rgb);
+    return float4(color, 1.0);
+}
+
+//预滤波片段着色器，6×6 box filter解决萤火虫光晕
+float4 BloomPrefilterFirefliesPassFragment(Varyings input):SV_TARGET
+{
+    float3 color = 0.0;
+    float weightSum = 0.0;
+    float2 offsets[] = {
+        float2(0.0, 0.0),
+        float2(-1.0, -1.0), float2(-1.0, 1.0), float2(1.0, -1.0), float2(1.0, 1.0)
+    };
+    for (int i = 0; i < 5; i++)
+    {
+        float3 c = GetSource(input.screenUV + offsets[i] * GetSourceTexelSize().xy * 2.0).rgb;
+        c = ApplyBloomThreshold(c);
+        //Luminace()将rgb转换为sRGB空间的亮度
+        float w = 1.0 / (Luminance(c) + 1.0);
+        color += c * w;
+        weightSum += w;
+    }
+    color /= weightSum;
     return float4(color, 1.0);
 }
 

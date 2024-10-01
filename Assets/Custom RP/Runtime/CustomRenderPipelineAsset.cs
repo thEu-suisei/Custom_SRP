@@ -4,7 +4,8 @@ using UnityEngine.Rendering;
 [CreateAssetMenu(menuName = "Rendering/Custom Render Pipeline")]
 public class CustomRenderPipelineAsset : RenderPipelineAsset
 {
-    [SerializeField] private bool 
+    [SerializeField] private bool
+        allowHDR = true,
         useDynamicBatching = true, 
         useGPUInstancing = true, 
         useSRPBatcher = true,
@@ -16,6 +17,6 @@ public class CustomRenderPipelineAsset : RenderPipelineAsset
     
     protected override RenderPipeline CreatePipeline()
     {
-        return new CustomRenderPipeline(useDynamicBatching, useGPUInstancing, useSRPBatcher,useLightsPerObject, shadows,postFXSettings);
+        return new CustomRenderPipeline(allowHDR,useDynamicBatching, useGPUInstancing, useSRPBatcher,useLightsPerObject, shadows,postFXSettings);
     }
 }

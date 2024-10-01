@@ -7,18 +7,20 @@ public partial class CameraRenderer
     private const string bufferName = "Render Camera";
 
     //获取ShaderId，用于告诉渲染器我们支持渲染哪些ShaderPasses
-    private static ShaderTagId unlitShaderTagId = new ShaderTagId("SRPDefaultUnlit"),
+    private static ShaderTagId
+        unlitShaderTagId = new ShaderTagId("SRPDefaultUnlit"),
         litShaderTagId = new ShaderTagId("CustomLit");
 
     //PostProcessing:如果使用处理，则设置中间缓存区用来渲染（不再直接渲染到相机缓冲区）
     private static int frameBufferId = Shader.PropertyToID("_CameraFrameBuffer");
 
+    private bool useHDR;
 
     private CommandBuffer buffer = new CommandBuffer()
     {
         name = bufferName
     };
-    
+
     private ScriptableRenderContext context;
     private Camera camera;
     private CullingResults cullingResults;
@@ -28,9 +30,10 @@ public partial class CameraRenderer
     //摄像机渲染器的渲染函数，在当前渲染上下文的基础上渲染当前摄像机
     public void Render(
         ScriptableRenderContext context,
-        Camera camera, 
+        Camera camera,
+        bool allowHDR,
         bool useDynamicBatching,
-        bool useGPUInstancing, 
+        bool useGPUInstancing,
         bool useLightsPerObject,
         ShadowSettings shadowSettings,
         PostFXSettings postFXSettings
@@ -49,22 +52,25 @@ public partial class CameraRenderer
             return;
         }
 
+        useHDR = allowHDR && camera.allowHDR;
+
         //在Frame Debugger中将Shadows buffer下的操作囊括到Camera标签下
         buffer.BeginSample(SampleName);
         ExecuteBuffer();
         //将光源信息传递给GPU，在其中也会完成阴影贴图的渲染
-        lighting.Setup(context, cullingResults, shadowSettings,useLightsPerObject);
-        postFXStack.Setup(context,camera,postFXSettings);
+        lighting.Setup(context, cullingResults, shadowSettings, useLightsPerObject);
+        postFXStack.Setup(context, camera, postFXSettings,useHDR);
         buffer.EndSample(SampleName);
         //设置当前摄像机Render Target，准备渲染摄像机画面
         Setup();
-        DrawVisibleGeometry(useDynamicBatching, useGPUInstancing,useLightsPerObject);
+        DrawVisibleGeometry(useDynamicBatching, useGPUInstancing, useLightsPerObject);
         DrawUnsupportedShaders();
         DrawGizmosBeforeFX();
         if (postFXStack.IsActive)
         {
             postFXStack.Render(frameBufferId);
         }
+
         DrawGizmosAfterFX();
         //完成渲染后，清理光源、后处理中间渲染缓存 等内存
         Cleanup();
@@ -84,10 +90,12 @@ public partial class CameraRenderer
             {
                 flags = CameraClearFlags.Color;
             }
-            buffer.GetTemporaryRT(frameBufferId,camera.pixelWidth,camera.pixelHeight,32,FilterMode.Bilinear,RenderTextureFormat.Default);
-            buffer.SetRenderTarget(frameBufferId,RenderBufferLoadAction.DontCare,RenderBufferStoreAction.Store);
+
+            buffer.GetTemporaryRT(frameBufferId, camera.pixelWidth, camera.pixelHeight,
+                32, FilterMode.Bilinear, useHDR ? RenderTextureFormat.DefaultHDR : RenderTextureFormat.Default);
+            buffer.SetRenderTarget(frameBufferId, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store);
         }
-        
+
         //清除当前摄像机Render Target中的内容,包括深度和颜色，ClearRenderTarget内部会Begin/EndSample(buffer.name)
         buffer.ClearRenderTarget(flags <= CameraClearFlags.Depth, flags == CameraClearFlags.Color,
             flags == CameraClearFlags.Color ? camera.backgroundColor.linear : Color.clear);

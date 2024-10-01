@@ -6,6 +6,8 @@ public partial class CustomRenderPipeline : RenderPipeline
     //摄像机渲染器实例，用于管理所有摄像机的渲染
     private CameraRenderer renderer = new CameraRenderer();
 
+    private bool allowHDR;
+
     //批处理配置
     private bool useDynamicBatching, useGPUInstancing, useLightsPerObject;
 
@@ -17,6 +19,7 @@ public partial class CustomRenderPipeline : RenderPipeline
 
     //构造函数，初始化管线的一些属性
     public CustomRenderPipeline(
+        bool allowHDR,
         bool useDynamicBatching,
         bool useGPUInstancing,
         bool useSRPBatcher,
@@ -25,6 +28,7 @@ public partial class CustomRenderPipeline : RenderPipeline
         PostFXSettings postFXSettings
     )
     {
+        this.allowHDR = allowHDR;
         this.postFXSettings = postFXSettings;
         this.useDynamicBatching = useDynamicBatching;
         this.useGPUInstancing = useGPUInstancing;
@@ -43,7 +47,7 @@ public partial class CustomRenderPipeline : RenderPipeline
         //按顺序渲染每个摄像机
         foreach (var camera in cameras)
         {
-            renderer.Render(context, camera, useDynamicBatching, useGPUInstancing, useLightsPerObject, shadowSettings,postFXSettings);
+            renderer.Render(context, camera,allowHDR, useDynamicBatching, useGPUInstancing, useLightsPerObject, shadowSettings,postFXSettings);
         }
     }
 }

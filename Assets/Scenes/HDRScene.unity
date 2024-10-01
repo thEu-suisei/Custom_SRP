@@ -96,7 +96,7 @@ LightmapSettings:
     m_ExportTrainingData: 0
     m_TrainingDataDestination: TrainingData
     m_LightProbeSampleCountMultiplier: 4
-  m_LightingDataAsset: {fileID: 112000000, guid: 6f4fccc16b888cf44a2d6995cd26add1, type: 2}
+  m_LightingDataAsset: {fileID: 112000000, guid: 31f4749ec16c9fe47bb558b45a97e897, type: 2}
   m_LightingSettings: {fileID: 4890085278179872738, guid: 54a43c65a394dff4dbe16dfabe136e05, type: 2}
 --- !u!196 &4
 NavMeshSettings:
@@ -1880,7 +1880,7 @@ MonoBehaviour:
   cutoff: 0.5
   metallic: 0
   smoothness: 0.5
-  emissionColor: {r: 8, g: 0, b: 8, a: 1}
+  emissionColor: {r: 2.0000002, g: 0, b: 2.0000002, a: 1}
 --- !u!65 &525492383
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -3062,7 +3062,7 @@ MonoBehaviour:
   cutoff: 0.5
   metallic: 0
   smoothness: 0.5
-  emissionColor: {r: 5.992157, g: 0, b: 0, a: 1}
+  emissionColor: {r: 1.4980392, g: 0, b: 0, a: 1}
 --- !u!65 &884742064
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -4164,7 +4164,7 @@ MonoBehaviour:
   cutoff: 0.5
   metallic: 0
   smoothness: 0.5
-  emissionColor: {r: 0, g: 0, b: 5.9921575, a: 1}
+  emissionColor: {r: 0, g: 0, b: 1.4980394, a: 1}
 --- !u!65 &1162268333
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -5494,7 +5494,7 @@ MonoBehaviour:
   cutoff: 0.5
   metallic: 0
   smoothness: 0.5
-  emissionColor: {r: 5.992156, g: 5.992156, b: 5.992156, a: 1}
+  emissionColor: {r: 1.9999999, g: 1.9999999, b: 1.9999999, a: 1}
 --- !u!65 &1323100988
 BoxCollider:
   m_ObjectHideFlags: 0
