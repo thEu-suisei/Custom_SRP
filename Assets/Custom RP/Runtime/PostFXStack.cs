@@ -16,7 +16,9 @@ public partial class PostFXStack
     {
         BloomPrefilter,
         BloomPrefilterFireflies,
-        BloomCombine,
+        BloomAdd,
+        BloomScatter,
+        BloomScatterFinal,
         BloomHorizontal,
         BloomVertical,
         Copy
@@ -117,7 +119,7 @@ public partial class PostFXStack
 
         //第一次滤波使用一半分辨率
         buffer.GetTemporaryRT(bloomPrefilterId, width, height, 0, FilterMode.Bilinear, format);
-        Draw(sourceId, bloomPrefilterId,bloom.fadeFireflies ? Pass.BloomPrefilterFireflies : Pass.BloomPrefilter);
+        Draw(sourceId, bloomPrefilterId, bloom.fadeFireflies ? Pass.BloomPrefilterFireflies : Pass.BloomPrefilter);
         width /= 2;
         height /= 2;
 
@@ -145,7 +147,22 @@ public partial class PostFXStack
 
         buffer.ReleaseTemporaryRT(bloomPrefilterId);
 
-        buffer.SetGlobalFloat(bloomIntensityId, 1f);
+        Pass combinePass,finalPass;
+        float finalIntensity;
+        if (bloom.mode == PostFXSettings.BloomSettings.Mode.Additive)
+        {
+            combinePass = finalPass = Pass.BloomAdd;
+            buffer.SetGlobalFloat(bloomIntensityId, 1f);
+            finalIntensity = bloom.intensity;
+        }
+        else
+        {
+            combinePass = Pass.BloomScatter;
+            finalPass = Pass.BloomScatterFinal;
+            buffer.SetGlobalFloat(bloomIntensityId, bloom.scatter);
+            finalIntensity = Mathf.Min(bloom.intensity, 0.95f);
+        }
+
         buffer.SetGlobalFloat(bloomBucibicUpsamplingId, bloom.bicubicUpsampling ? 1f : 0f);
         if (i > 1)
         {
@@ -155,7 +172,7 @@ public partial class PostFXStack
             for (i -= 1; i > 0; i--)
             {
                 buffer.SetGlobalTexture(fxSource2Id, toId + 1);
-                Draw(fromId, toId, Pass.BloomCombine);
+                Draw(fromId, toId, combinePass);
                 buffer.ReleaseTemporaryRT(fromId);
                 buffer.ReleaseTemporaryRT(toId + 1);
                 fromId = toId;
@@ -167,9 +184,9 @@ public partial class PostFXStack
             buffer.ReleaseTemporaryRT(bloomPyramidId);
         }
 
-        buffer.SetGlobalFloat(bloomIntensityId, bloom.intensity);
+        buffer.SetGlobalFloat(bloomIntensityId, finalIntensity);
         buffer.SetGlobalTexture(fxSource2Id, sourceId);
-        Draw(fromId, BuiltinRenderTextureType.CameraTarget, Pass.BloomCombine);
+        Draw(fromId, BuiltinRenderTextureType.CameraTarget, finalPass);
         buffer.ReleaseTemporaryRT(fromId);
 
         buffer.EndSample("Bloom");

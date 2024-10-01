@@ -109,7 +109,7 @@ float4 BloomPrefilterFirefliesPassFragment(Varyings input):SV_TARGET
 }
 
 //加法模糊(双立方上采样)
-float4 BloomCombinePassFragment(Varyings input) : SV_TARGET
+float4 BloomAddPassFragment(Varyings input) : SV_TARGET
 {
     float3 lowRes;
     if (_BloomBicubicUpsampling)
@@ -122,6 +122,38 @@ float4 BloomCombinePassFragment(Varyings input) : SV_TARGET
     }
     float3 highRes = GetSource2(input.screenUV).rgb;
     return float4(lowRes * _BloomIntensity + highRes, 1.0);
+}
+
+//Scatter Bloom
+float4 BloomScatterPassFragment(Varyings input) : SV_TARGET
+{
+    float3 lowRes;
+    if (_BloomBicubicUpsampling)
+    {
+        lowRes = GetSourceBicubic(input.screenUV).rgb;
+    }
+    else
+    {
+        lowRes = GetSource(input.screenUV).rgb;
+    }
+    float3 highRes = GetSource2(input.screenUV).rgb;
+    return float4(lerp(highRes, lowRes, _BloomIntensity), 1.0);
+}
+
+float4 BloomScatterFinalPassFragment(Varyings input) : SV_TARGET
+{
+    float3 lowRes;
+    if (_BloomBicubicUpsampling)
+    {
+        lowRes = GetSourceBicubic(input.screenUV).rgb;
+    }
+    else
+    {
+        lowRes = GetSource(input.screenUV).rgb;
+    }
+    float3 highRes = GetSource2(input.screenUV).rgb;
+    lowRes += highRes - ApplyBloomThreshold(highRes);
+    return float4(lerp(highRes, lowRes, _BloomIntensity), 1.0);
 }
 
 //水平高斯滤波

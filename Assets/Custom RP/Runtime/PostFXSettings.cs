@@ -28,9 +28,18 @@ public class PostFXSettings : ScriptableObject
         public float intensity;
 
         public bool fadeFireflies;
+        
+        //Additive：加法滤波
+        //Scatter：散射用于模拟相机和眼球的内部折射效果
+        public enum Mode {Additive,Scattering}
+
+        public Mode mode;
+        
+        [Range(0.05f, 0.95f)]
+        public float scatter;
     }
 
-    [SerializeField] BloomSettings bloom = default;
+    [SerializeField] BloomSettings bloom = new BloomSettings{scatter = 0.7f};
     
 
     public BloomSettings Bloom => bloom;
