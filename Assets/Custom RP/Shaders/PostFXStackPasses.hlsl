@@ -15,6 +15,8 @@ float4 _BloomThreshold;
 float _BloomIntensity;
 float4 _ColorAdjustments;
 float4 _ColorFilter;
+float4 _WhiteBalance;
+float4 _SplitToningShadows, _SplitToningHighlights;
 
 bool _BloomBicubicUpsampling;
 
@@ -66,6 +68,14 @@ float3 ColorGradePostExposure(float3 color)
     return color * _ColorAdjustments.x;
 }
 
+//颜色调整：白平衡
+float3 ColorGradeWhiteBalance(float3 color)
+{
+    color = LinearToLMS(color);
+    color *= _WhiteBalance.rgb;
+    return LMSToLinear(color);
+}
+
 //颜色调整：对比度
 //颜色减去中间灰度值(ACEScc)后乘上对比度，然后再加回中间灰度值。
 //但是这样的处理再Log(c)完成而非在线性空间完成获得更好的效果
@@ -80,6 +90,25 @@ float3 ColorGradingContrast(float3 color)
 float3 ColorGradeColorFilter(float3 color)
 {
     return color * _ColorFilter.rgb;
+}
+
+//颜色调整：分离色调
+//On the shader side we'll perform split-toning in approximate gamma space, raising the color to the inverse of 2.2
+//beforehand and to 2.2 afterwards. This is done to match the split-toning of Adobe products. The adjustment is made
+//after the color filter, after negative values have been eliminated.
+float3 ColorGradeSplitToning(float3 color)
+{
+    color = PositivePow(color, 1.0 / 2.2);
+
+    //我们通过在颜色和阴影色调之间进行柔光混合来应用色调，然后是高光色调。我们可以SoftLight为此使用两次该功能。
+    //在混合之前，我们通过在中性 0.5 和它们本身之间进行插值来将色调限制在各自的区域。对于高光，我们根据饱和亮度加上平衡（再次饱和）来做到这一点。对于阴影，我们使用相反的方法。
+    float t = saturate(Luminance(saturate(color)) + _SplitToningShadows.w);
+    float3 shadows = lerp(0.5, _SplitToningShadows.rgb, 1.0 - t);
+    float3 highlights = lerp(0.5, _SplitToningHighlights.rgb, t);
+    color = SoftLight(color, shadows);
+    color = SoftLight(color, highlights);
+    
+    return PositivePow(color, 2.2);
 }
 
 //颜色调整：色相偏移
@@ -105,12 +134,14 @@ float3 ColorGrade(float3 color)
     //由于精度限制，该映射会在值非常大时出错，所以提前限制
     color = min(color, 60.0);
     color = ColorGradePostExposure(color);
+    color = ColorGradeWhiteBalance(color);
     color = ColorGradingContrast(color);
     color = ColorGradeColorFilter(color);
     color = max(color, 0.0); //对比度会让有的颜色变负
+	color = ColorGradeSplitToning(color);
     color = ColorGradingHueShift(color);
     color = ColorGradingSaturation(color);
-    return max(color, 0.0);//饱和度会让有的颜色变负
+    return max(color, 0.0); //饱和度会让有的颜色变负
 }
 
 //——————————着色器——————————

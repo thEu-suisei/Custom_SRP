@@ -9,6 +9,7 @@ public class PostFXSettings : ScriptableObject
     //使用shader需要材质，按需创建而不是在项目中保存
     [System.NonSerialized] private Material material;
 
+    //Bloom
     [System.Serializable]
     public struct BloomSettings
     {
@@ -40,6 +41,11 @@ public class PostFXSettings : ScriptableObject
         [Range(0.05f, 0.95f)] public float scatter;
     }
 
+    [SerializeField] BloomSettings bloom = new BloomSettings { scatter = 0.7f };
+
+    public BloomSettings Bloom => bloom;
+
+    //ToneMapping
     [System.Serializable]
     public struct ToneMappingSettings
     {
@@ -54,14 +60,11 @@ public class PostFXSettings : ScriptableObject
         public Mode mode;
     }
 
-    [SerializeField] BloomSettings bloom = new BloomSettings { scatter = 0.7f };
-
-    public BloomSettings Bloom => bloom;
-
     [SerializeField] private ToneMappingSettings toneMapping = default;
 
     public ToneMappingSettings ToneMapping => toneMapping;
 
+    //ColorAdjustment
     [Serializable]
     public struct ColorAdjustmentsSettings
     {
@@ -87,6 +90,41 @@ public class PostFXSettings : ScriptableObject
     };
 
     public ColorAdjustmentsSettings ColorAdjustments => colorAdjustments;
+    
+    //WhiteBalance
+    [Serializable]
+    public struct WhiteBalanceSettings {
+
+        [Range(-100f, 100f),Tooltip("温度")]
+        public float temperature;
+        
+        [Range(-100f, 100f),Tooltip("色调")]
+        public float  tint;
+    }
+    
+    [SerializeField]
+    WhiteBalanceSettings whiteBalance = default;
+
+    public WhiteBalanceSettings WhiteBalance => whiteBalance;
+    
+    //Split Toning
+    [Serializable]
+    public struct SplitToningSettings {
+
+        [ColorUsage(false)]
+        public Color shadows, highlights;
+
+        [Range(-100f, 100f)]
+        public float balance;
+    }
+
+    [SerializeField]
+    SplitToningSettings splitToning = new SplitToningSettings {
+        shadows = Color.gray,
+        highlights = Color.gray
+    };
+
+    public SplitToningSettings SplitToning => splitToning;
 
     public Material Material
     {

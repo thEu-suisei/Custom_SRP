@@ -42,7 +42,10 @@ public partial class PostFXStack
         fxSourceId = Shader.PropertyToID("_PostFXSource"),
         fxSource2Id = Shader.PropertyToID("_PostFXSource2"),
         colorAdjustmentsId = Shader.PropertyToID("_ColorAdjustments"),
-        colorFilterId = Shader.PropertyToID("_ColorFilter");
+        colorFilterId = Shader.PropertyToID("_ColorFilter"),
+        whiteBalanceId = Shader.PropertyToID("_WhiteBalance"),
+        splitToningShadowsId = Shader.PropertyToID("_SplitToningShadows"),
+        splitToningHighlightsId = Shader.PropertyToID("_SplitToningHighlights");
 
     private bool useHDR;
 
@@ -112,7 +115,7 @@ public partial class PostFXStack
         {
             return false;
         }
-        
+
         buffer.BeginSample("Bloom");
 
         //将阈值计算公式的各个分量分别存到Vector4中
@@ -156,7 +159,7 @@ public partial class PostFXStack
 
         buffer.ReleaseTemporaryRT(bloomPrefilterId);
 
-        Pass combinePass,finalPass;
+        Pass combinePass, finalPass;
         float finalIntensity;
         if (bloom.mode == BloomSettings.Mode.Additive)
         {
@@ -195,7 +198,7 @@ public partial class PostFXStack
 
         buffer.SetGlobalFloat(bloomIntensityId, finalIntensity);
         buffer.SetGlobalTexture(fxSource2Id, sourceId);
-        buffer.GetTemporaryRT(bloomResultId,camera.pixelWidth,camera.pixelHeight,0,FilterMode.Bilinear,format);
+        buffer.GetTemporaryRT(bloomResultId, camera.pixelWidth, camera.pixelHeight, 0, FilterMode.Bilinear, format);
         Draw(fromId, bloomResultId, finalPass);
         buffer.ReleaseTemporaryRT(fromId);
 
@@ -203,7 +206,7 @@ public partial class PostFXStack
         return true;
     }
 
-    void ConfigureColorAdjustments ()
+    void ConfigureColorAdjustments()
     {
         ColorAdjustmentsSettings colorAdjustments = settings.ColorAdjustments;
         //将各个属性值映射一下后传递。
@@ -216,12 +219,29 @@ public partial class PostFXStack
         buffer.SetGlobalVector(colorFilterId, colorAdjustments.colorFilter.linear);
     }
 
+    void ConfigureWhiteBalance()
+    {
+        WhiteBalanceSettings whiteBalance = settings.WhiteBalance;
+        buffer.SetGlobalVector(whiteBalanceId, ColorUtils.ColorBalanceToLMSCoeffs(whiteBalance.temperature, whiteBalance.tint));
+    }
+
+    void ConfigureSplitToning()
+    {
+        SplitToningSettings splitToning = settings.SplitToning;
+        Color splitColor = splitToning.shadows;
+        splitColor.a = splitToning.balance * 0.01f;//balance存储在颜色的第四个分量
+        buffer.SetGlobalColor(splitToningShadowsId, splitColor);
+        buffer.SetGlobalColor(splitToningHighlightsId, splitToning.highlights);
+    }
+
     void DoColorGradingAndToneMapping(int sourceId)
     {
         ConfigureColorAdjustments();
-        
+        ConfigureWhiteBalance();
+        ConfigureSplitToning();
+
         ToneMappingSettings.Mode mode = settings.ToneMapping.mode;
         Pass pass = mode < 0 ? Pass.Copy : Pass.ToneMappingNone + (int)mode;
-        Draw(sourceId,BuiltinRenderTextureType.CameraTarget,pass);
+        Draw(sourceId, BuiltinRenderTextureType.CameraTarget, pass);
     }
 }
