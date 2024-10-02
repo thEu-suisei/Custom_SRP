@@ -13,6 +13,17 @@
 
         Pass
         {
+            Name "Copy"
+
+            HLSLPROGRAM
+            #pragma target 3.5
+            #pragma vertex DefaultPassVertex
+            #pragma fragment CopyPassFragment
+            ENDHLSL
+        }
+
+        Pass
+        {
             Name "Bloom Prefilter"
             
             HLSLPROGRAM
@@ -90,12 +101,34 @@
 
         Pass
         {
-            Name "Copy"
-
+            Name "ToneMapping ACES"
+            
             HLSLPROGRAM
             #pragma target 3.5
             #pragma vertex DefaultPassVertex
-            #pragma fragment CopyPassFragment
+            #pragma fragment ToneMappingACESPassFragment 
+            ENDHLSL
+        }
+
+        Pass
+        {
+            Name "ToneMapping Neutral"
+            
+            HLSLPROGRAM
+            #pragma target 3.5
+            #pragma vertex DefaultPassVertex
+            #pragma fragment ToneMappingNeutralPassFragment 
+            ENDHLSL
+        }
+
+        Pass
+        {
+            Name "ToneMapping Reinhard"
+            
+            HLSLPROGRAM
+            #pragma target 3.5
+            #pragma vertex DefaultPassVertex
+            #pragma fragment ToneMappingReinhardPassFragment 
             ENDHLSL
         }
     }

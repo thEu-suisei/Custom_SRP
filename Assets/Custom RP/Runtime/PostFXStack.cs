@@ -14,6 +14,7 @@ public partial class PostFXStack
     //枚举顺序与ShaderPass顺序一致
     enum Pass
     {
+        Copy,
         BloomPrefilter,
         BloomPrefilterFireflies,
         BloomAdd,
@@ -21,7 +22,7 @@ public partial class PostFXStack
         BloomScatterFinal,
         BloomHorizontal,
         BloomVertical,
-        Copy
+        ToneMappingACES
     }
 
     private ScriptableRenderContext context;
@@ -34,6 +35,7 @@ public partial class PostFXStack
     private int
         bloomBucibicUpsamplingId = Shader.PropertyToID("_BloomBicubicUpsampling"),
         bloomPrefilterId = Shader.PropertyToID("_BloomPrefilter"), //在第一次滤波采样一半分辨率，预滤波
+        bloomResultId = Shader.PropertyToID("_BloomResult"),
         bloomThresholdId = Shader.PropertyToID("_BloomThreshold"),
         bloomIntensityId = Shader.PropertyToID("_BloomIntensity"),
         fxSourceId = Shader.PropertyToID("_PostFXSource"),
@@ -83,28 +85,32 @@ public partial class PostFXStack
     /// <param name="sourceId"></param>
     public void Render(int sourceId)
     {
-        //将目前所有渲染的结果  复制到  相机的帧缓冲区，完全复制因此不需要ClearRenderTarget
-        // Draw(sourceId,BuiltinRenderTextureType.CameraTarget,Pass.Copy);
-
-        DoBloom(sourceId);
+        if (DoBloom(sourceId))
+        {
+            DoToneMapping(bloomResultId);
+            buffer.ReleaseTemporaryRT(bloomResultId);
+        }
+        else
+        {
+            DoToneMapping(sourceId);
+        }
 
         context.ExecuteCommandBuffer(buffer);
         buffer.Clear();
     }
 
-    void DoBloom(int sourceId)
+    bool DoBloom(int sourceId)
     {
-        buffer.BeginSample("Bloom");
         PostFXSettings.BloomSettings bloom = settings.Bloom;
         int width = camera.pixelWidth / 2, height = camera.pixelHeight / 2;
 
         if (bloom.maxIterations == 0 || bloom.intensity <= 0f || height < bloom.downscaleLimit * 2 ||
             width < bloom.downscaleLimit * 2)
         {
-            Draw(sourceId, BuiltinRenderTextureType.CameraTarget, Pass.Copy);
-            buffer.EndSample("Bloom");
-            return;
+            return false;
         }
+        
+        buffer.BeginSample("Bloom");
 
         //将阈值计算公式的各个分量分别存到Vector4中
         Vector4 threshold;
@@ -186,9 +192,18 @@ public partial class PostFXStack
 
         buffer.SetGlobalFloat(bloomIntensityId, finalIntensity);
         buffer.SetGlobalTexture(fxSource2Id, sourceId);
-        Draw(fromId, BuiltinRenderTextureType.CameraTarget, finalPass);
+        buffer.GetTemporaryRT(bloomResultId,camera.pixelWidth,camera.pixelHeight,0,FilterMode.Bilinear,format);
+        Draw(fromId, bloomResultId, finalPass);
         buffer.ReleaseTemporaryRT(fromId);
 
         buffer.EndSample("Bloom");
+        return true;
+    }
+
+    void DoToneMapping(int sourceId)
+    {
+        PostFXSettings.ToneMappingSettings.Mode mode = settings.ToneMapping.mode;
+        Pass pass = mode < 0 ? Pass.Copy : Pass.ToneMappingACES + (int)mode;
+        Draw(sourceId,BuiltinRenderTextureType.CameraTarget,pass);
     }
 }
