@@ -1,6 +1,7 @@
 using UnityEditor.Rendering.LookDev;
 using UnityEngine;
 using UnityEngine.Rendering;
+using static PostFXSettings;
 
 public partial class PostFXStack
 {
@@ -22,7 +23,7 @@ public partial class PostFXStack
         BloomScatterFinal,
         BloomHorizontal,
         BloomVertical,
-        ToneMappingACES
+        ToneMappingNone
     }
 
     private ScriptableRenderContext context;
@@ -39,7 +40,9 @@ public partial class PostFXStack
         bloomThresholdId = Shader.PropertyToID("_BloomThreshold"),
         bloomIntensityId = Shader.PropertyToID("_BloomIntensity"),
         fxSourceId = Shader.PropertyToID("_PostFXSource"),
-        fxSource2Id = Shader.PropertyToID("_PostFXSource2");
+        fxSource2Id = Shader.PropertyToID("_PostFXSource2"),
+        colorAdjustmentsId = Shader.PropertyToID("_ColorAdjustments"),
+        colorFilterId = Shader.PropertyToID("_ColorFilter");
 
     private bool useHDR;
 
@@ -87,12 +90,12 @@ public partial class PostFXStack
     {
         if (DoBloom(sourceId))
         {
-            DoToneMapping(bloomResultId);
+            DoColorGradingAndToneMapping(bloomResultId);
             buffer.ReleaseTemporaryRT(bloomResultId);
         }
         else
         {
-            DoToneMapping(sourceId);
+            DoColorGradingAndToneMapping(sourceId);
         }
 
         context.ExecuteCommandBuffer(buffer);
@@ -101,7 +104,7 @@ public partial class PostFXStack
 
     bool DoBloom(int sourceId)
     {
-        PostFXSettings.BloomSettings bloom = settings.Bloom;
+        BloomSettings bloom = settings.Bloom;
         int width = camera.pixelWidth / 2, height = camera.pixelHeight / 2;
 
         if (bloom.maxIterations == 0 || bloom.intensity <= 0f || height < bloom.downscaleLimit * 2 ||
@@ -155,7 +158,7 @@ public partial class PostFXStack
 
         Pass combinePass,finalPass;
         float finalIntensity;
-        if (bloom.mode == PostFXSettings.BloomSettings.Mode.Additive)
+        if (bloom.mode == BloomSettings.Mode.Additive)
         {
             combinePass = finalPass = Pass.BloomAdd;
             buffer.SetGlobalFloat(bloomIntensityId, 1f);
@@ -200,10 +203,25 @@ public partial class PostFXStack
         return true;
     }
 
-    void DoToneMapping(int sourceId)
+    void ConfigureColorAdjustments ()
     {
-        PostFXSettings.ToneMappingSettings.Mode mode = settings.ToneMapping.mode;
-        Pass pass = mode < 0 ? Pass.Copy : Pass.ToneMappingACES + (int)mode;
+        ColorAdjustmentsSettings colorAdjustments = settings.ColorAdjustments;
+        //将各个属性值映射一下后传递。
+        buffer.SetGlobalVector(colorAdjustmentsId, new Vector4(
+            Mathf.Pow(2f, colorAdjustments.postExposure),
+            colorAdjustments.contrast * 0.01f + 1f,
+            colorAdjustments.hueShift * (1f / 360f),
+            colorAdjustments.saturation * 0.01f + 1f
+        ));
+        buffer.SetGlobalVector(colorFilterId, colorAdjustments.colorFilter.linear);
+    }
+
+    void DoColorGradingAndToneMapping(int sourceId)
+    {
+        ConfigureColorAdjustments();
+        
+        ToneMappingSettings.Mode mode = settings.ToneMapping.mode;
+        Pass pass = mode < 0 ? Pass.Copy : Pass.ToneMappingNone + (int)mode;
         Draw(sourceId,BuiltinRenderTextureType.CameraTarget,pass);
     }
 }

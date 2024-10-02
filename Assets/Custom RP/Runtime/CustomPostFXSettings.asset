@@ -21,7 +21,13 @@ MonoBehaviour:
     thresholdKnee: 0
     intensity: 0.2
     fadeFireflies: 1
-    mode: 1
+    mode: 0
     scatter: 0.7
   toneMapping:
     mode: 0
+  colorAdjustments:
+    postExposure: 0
+    contrast: 0
+    colorFilter: {r: 1, g: 1, b: 1, a: 0}
+    hueShift: 0
+    saturation: 0

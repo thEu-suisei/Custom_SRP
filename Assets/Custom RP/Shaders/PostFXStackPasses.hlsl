@@ -13,8 +13,16 @@ float4 _ProjectionParams;
 float4 _PostFXSource_TexelSize;
 float4 _BloomThreshold;
 float _BloomIntensity;
+float4 _ColorAdjustments;
+float4 _ColorFilter;
 
 bool _BloomBicubicUpsampling;
+
+struct Varyings
+{
+    float4 positionCS:SV_POSITION;
+    float2 screenUV:VAR_SCREEN_UV;
+};
 
 float4 GetSourceTexelSize()
 {
@@ -30,12 +38,6 @@ float4 GetSource2(float2 screenUV)
 {
     return SAMPLE_TEXTURE2D_LOD(_PostFXSource2, sampler_linear_clamp, screenUV, 0);
 }
-
-struct Varyings
-{
-    float4 positionCS:SV_POSITION;
-    float2 screenUV:VAR_SCREEN_UV;
-};
 
 float4 GetSourceBicubic(float2 screenUV)
 {
@@ -57,8 +59,61 @@ float3 ApplyBloomThreshold(float3 color)
     return color * contribution;
 }
 
+//颜色调整: 后期曝光
+//后期曝光应用在所以其他后期之后，所有其他颜色分级之前
+float3 ColorGradePostExposure(float3 color)
+{
+    return color * _ColorAdjustments.x;
+}
 
-//着色器
+//颜色调整：对比度
+//颜色减去中间灰度值(ACEScc)后乘上对比度，然后再加回中间灰度值。
+//但是这样的处理再Log(c)完成而非在线性空间完成获得更好的效果
+float3 ColorGradingContrast(float3 color)
+{
+    color = LinearToLogC(color);
+    color = (color - ACEScc_MIDGRAY) * _ColorAdjustments.y + ACEScc_MIDGRAY;
+    return LogCToLinear(color);
+}
+
+//颜色调整：颜色滤镜
+float3 ColorGradeColorFilter(float3 color)
+{
+    return color * _ColorFilter.rgb;
+}
+
+//颜色调整：色相偏移
+float3 ColorGradingHueShift(float3 color)
+{
+    color = RgbToHsv(color);
+    float hue = color.x + _ColorAdjustments.z;
+    color.x = RotateHue(hue, 0.0, 1.0);
+    return HsvToRgb(color);
+}
+
+//颜色调整：饱和度
+//色彩的纯度，和对比度计算方法类似，只是不用Log(c)，中间灰度换成亮度
+float3 ColorGradingSaturation(float3 color)
+{
+    float luminance = Luminance(color);
+    return (color - luminance) * _ColorAdjustments.w + luminance;
+}
+
+//颜色调整
+float3 ColorGrade(float3 color)
+{
+    //由于精度限制，该映射会在值非常大时出错，所以提前限制
+    color = min(color, 60.0);
+    color = ColorGradePostExposure(color);
+    color = ColorGradingContrast(color);
+    color = ColorGradeColorFilter(color);
+    color = max(color, 0.0); //对比度会让有的颜色变负
+    color = ColorGradingHueShift(color);
+    color = ColorGradingSaturation(color);
+    return max(color, 0.0);//饱和度会让有的颜色变负
+}
+
+//——————————着色器——————————
 //顶点着色器
 Varyings DefaultPassVertex(uint vertexID: SV_VertexID)
 {
@@ -200,11 +255,19 @@ float4 BloomVerticalPassFragment(Varyings input) : SV_TARGET
     return float4(color, 1.0);
 }
 
+//ToneMapping None
+float4 ToneMappingNonePassFragment(Varyings input) : SV_TARGET
+{
+    float4 color = GetSource(input.screenUV);
+    color.rgb = ColorGrade(color.rgb);
+    return color;
+}
+
 //ToneMapping ACES
 float4 ToneMappingACESPassFragment(Varyings input) : SV_TARGET
 {
     float4 color = GetSource(input.screenUV);
-    color.rgb = min(color.rgb, 60.0);
+    color.rgb = ColorGrade(color.rgb);
     color.rgb = AcesTonemap(unity_to_ACES(color.rgb));
     return color;
 }
@@ -213,7 +276,7 @@ float4 ToneMappingACESPassFragment(Varyings input) : SV_TARGET
 float4 ToneMappingNeutralPassFragment(Varyings input) : SV_TARGET
 {
     float4 color = GetSource(input.screenUV);
-    color.rgb = min(color.rgb, 60.0);
+    color.rgb = ColorGrade(color.rgb);
     color.rgb = NeutralTonemap(color.rgb);
     return color;
 }
@@ -222,8 +285,7 @@ float4 ToneMappingNeutralPassFragment(Varyings input) : SV_TARGET
 float4 ToneMappingReinhardPassFragment(Varyings input) : SV_TARGET
 {
     float4 color = GetSource(input.screenUV);
-    //由于精度限制，该映射会在值非常大时出错，所以提前限制
-    color.rgb = min(color.rgb, 60.0);
+    color.rgb = ColorGrade(color.rgb);
     color.rgb /= color.rgb + 1.0;
     return color;
 }
