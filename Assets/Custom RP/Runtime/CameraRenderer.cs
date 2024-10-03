@@ -36,7 +36,8 @@ public partial class CameraRenderer
         bool useGPUInstancing,
         bool useLightsPerObject,
         ShadowSettings shadowSettings,
-        PostFXSettings postFXSettings
+        PostFXSettings postFXSettings,
+        int colorLUTResolution
     )
     {
         //设定当前上下文和摄像机
@@ -59,7 +60,7 @@ public partial class CameraRenderer
         ExecuteBuffer();
         //将光源信息传递给GPU，在其中也会完成阴影贴图的渲染
         lighting.Setup(context, cullingResults, shadowSettings, useLightsPerObject);
-        postFXStack.Setup(context, camera, postFXSettings,useHDR);
+        postFXStack.Setup(context, camera, postFXSettings,useHDR, colorLUTResolution);
         buffer.EndSample(SampleName);
         //设置当前摄像机Render Target，准备渲染摄像机画面
         Setup();

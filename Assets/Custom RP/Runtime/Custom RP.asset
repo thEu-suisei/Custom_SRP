@@ -22,7 +22,7 @@ MonoBehaviour:
     maxDistance: 50
     distanceFade: 0.5
     directional:
-      atlasSize: 1024
+      atlasSize: 2048
       filter: 2
       cascadeCount: 4
       cascadeRatio1: 0.2
@@ -31,6 +31,7 @@ MonoBehaviour:
       cascadeFade: 0.1
       cascadeBlend: 1
     other:
-      atlasSize: 1024
+      atlasSize: 2048
       filter: 3
   postFXSettings: {fileID: 11400000, guid: febc79c5b16584146a176e2fa3dda669, type: 2}
+  colorLUTResolution: 32

@@ -69,19 +69,20 @@ public class PostFXSettings : ScriptableObject
     public struct ColorAdjustmentsSettings
     {
         //后曝光
-        [Tooltip("后期曝光")]public float postExposure;
+        [Tooltip("后期曝光")] public float postExposure;
 
         //对比度
-        [Range(-100f, 100f),Tooltip("对比度")] public float contrast;
+        [Range(-100f, 100f), Tooltip("对比度")] public float contrast;
 
         //颜色滤镜，即一种没有 alpha 的 HDR 颜色
-        [ColorUsage(false, true),Tooltip("颜色滤镜")] public Color colorFilter;
+        [ColorUsage(false, true), Tooltip("颜色滤镜")]
+        public Color colorFilter;
 
         //色相偏移
-        [Range(-180f, 180f),Tooltip("色相偏移")] public float hueShift;
+        [Range(-180f, 180f), Tooltip("色相偏移")] public float hueShift;
 
         //饱和度
-        [Range(-100f, 100f),Tooltip("饱和度")] public float saturation;
+        [Range(-100f, 100f), Tooltip("饱和度")] public float saturation;
     }
 
     [SerializeField] ColorAdjustmentsSettings colorAdjustments = new ColorAdjustmentsSettings
@@ -90,41 +91,74 @@ public class PostFXSettings : ScriptableObject
     };
 
     public ColorAdjustmentsSettings ColorAdjustments => colorAdjustments;
-    
+
     //WhiteBalance
     [Serializable]
-    public struct WhiteBalanceSettings {
+    public struct WhiteBalanceSettings
+    {
+        [Range(-100f, 100f), Tooltip("温度")] public float temperature;
 
-        [Range(-100f, 100f),Tooltip("温度")]
-        public float temperature;
-        
-        [Range(-100f, 100f),Tooltip("色调")]
-        public float  tint;
+        [Range(-100f, 100f), Tooltip("色调")] public float tint;
     }
-    
-    [SerializeField]
-    WhiteBalanceSettings whiteBalance = default;
+
+    [SerializeField] WhiteBalanceSettings whiteBalance = default;
 
     public WhiteBalanceSettings WhiteBalance => whiteBalance;
-    
+
     //Split Toning
     [Serializable]
-    public struct SplitToningSettings {
+    public struct SplitToningSettings
+    {
+        [ColorUsage(false)] public Color shadows, highlights;
 
-        [ColorUsage(false)]
-        public Color shadows, highlights;
-
-        [Range(-100f, 100f)]
-        public float balance;
+        [Range(-100f, 100f)] public float balance;
     }
 
-    [SerializeField]
-    SplitToningSettings splitToning = new SplitToningSettings {
+    [SerializeField] SplitToningSettings splitToning = new SplitToningSettings
+    {
         shadows = Color.gray,
         highlights = Color.gray
     };
 
     public SplitToningSettings SplitToning => splitToning;
+
+    //ChannelMixer
+    [Serializable]
+    public struct ChannelMixerSettings
+    {
+        public Vector3 red, green, blue;
+    }
+
+    [SerializeField] private ChannelMixerSettings channelMixer = new ChannelMixerSettings
+    {
+        red = Vector3.right,
+        green = Vector3.up,
+        blue = Vector3.forward
+    };
+
+    public ChannelMixerSettings ChannelMixer => channelMixer;
+
+    //Shadows Midtones Highlights
+    [Serializable]
+    public struct ShadowsMidtonesHighlightsSettings
+    {
+        [ColorUsage(false, true)] public Color shadows, midtones, highlights;
+
+        [Range(0f, 2f)] public float shadowsStart, shadowsEnd, highlightsStart, highlightsEnd;
+    }
+
+    [SerializeField] private ShadowsMidtonesHighlightsSettings shadowsMidtonesHighlights =
+        new ShadowsMidtonesHighlightsSettings
+        {
+            shadows = Color.white,
+            midtones = Color.white,
+            highlights = Color.white,
+            shadowsEnd = 0.3f,
+            highlightsStart = 0.55f,
+            highlightsEnd = 1f
+        };
+
+    public ShadowsMidtonesHighlightsSettings ShadowsMidtonesHighlights => shadowsMidtonesHighlights;
 
     public Material Material
     {

@@ -13,9 +13,12 @@ public partial class CustomRenderPipeline : RenderPipeline
 
     //Shadow Map配置
     private ShadowSettings shadowSettings;
-    
+
     //Post Processing
     PostFXSettings postFXSettings;
+
+    //LUT
+    int colorLUTResolution;
 
     //构造函数，初始化管线的一些属性
     public CustomRenderPipeline(
@@ -25,7 +28,8 @@ public partial class CustomRenderPipeline : RenderPipeline
         bool useSRPBatcher,
         bool useLightsPerObject,
         ShadowSettings shadowSettings,
-        PostFXSettings postFXSettings
+        PostFXSettings postFXSettings,
+        int colorLUTResolution
     )
     {
         this.allowHDR = allowHDR;
@@ -34,6 +38,7 @@ public partial class CustomRenderPipeline : RenderPipeline
         this.useGPUInstancing = useGPUInstancing;
         this.shadowSettings = shadowSettings;
         this.useLightsPerObject = useLightsPerObject;
+        this.colorLUTResolution = colorLUTResolution;
         //配置SRP Batch
         GraphicsSettings.useScriptableRenderPipelineBatching = useSRPBatcher;
         //设置光源颜色为线性空间
@@ -47,7 +52,8 @@ public partial class CustomRenderPipeline : RenderPipeline
         //按顺序渲染每个摄像机
         foreach (var camera in cameras)
         {
-            renderer.Render(context, camera,allowHDR, useDynamicBatching, useGPUInstancing, useLightsPerObject, shadowSettings,postFXSettings);
+            renderer.Render(context, camera, allowHDR, useDynamicBatching, useGPUInstancing, useLightsPerObject,
+                shadowSettings, postFXSettings, colorLUTResolution);
         }
     }
 }
