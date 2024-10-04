@@ -11,7 +11,7 @@ public partial class CameraRenderer
         unlitShaderTagId = new ShaderTagId("SRPDefaultUnlit"),
         litShaderTagId = new ShaderTagId("CustomLit");
 
-    //PostProcessing:如果使用处理，则设置中间缓存区用来渲染（不再直接渲染到相机缓冲区）
+    //_CameraFrameBuffer作为一个中间缓存
     private static int frameBufferId = Shader.PropertyToID("_CameraFrameBuffer");
 
     private bool useHDR;
@@ -26,6 +26,8 @@ public partial class CameraRenderer
     private CullingResults cullingResults;
     private Lighting lighting = new Lighting();
     private PostFXStack postFXStack = new PostFXStack();
+
+    static CameraSettings defaultCameraSettings = new CameraSettings();
 
     //摄像机渲染器的渲染函数，在当前渲染上下文的基础上渲染当前摄像机
     public void Render(
@@ -44,6 +46,14 @@ public partial class CameraRenderer
         this.context = context;
         this.camera = camera;
 
+        var crpCamera = camera.GetComponent<CustomRenderPipelineCamera>();
+        CameraSettings cameraSettings = crpCamera ? crpCamera.Settings : defaultCameraSettings;
+
+        if (cameraSettings.overridePostFX)
+        {
+            postFXSettings = cameraSettings.postFXSettings;
+        }
+
         PrepareBuffer();
         PrepareForSceneWindow();
 
@@ -60,7 +70,7 @@ public partial class CameraRenderer
         ExecuteBuffer();
         //将光源信息传递给GPU，在其中也会完成阴影贴图的渲染
         lighting.Setup(context, cullingResults, shadowSettings, useLightsPerObject);
-        postFXStack.Setup(context, camera, postFXSettings,useHDR, colorLUTResolution);
+        postFXStack.Setup(context, camera, postFXSettings, useHDR, colorLUTResolution, cameraSettings.finalBlendMode);
         buffer.EndSample(SampleName);
         //设置当前摄像机Render Target，准备渲染摄像机画面
         Setup();

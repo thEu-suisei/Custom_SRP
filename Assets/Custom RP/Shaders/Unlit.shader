@@ -47,7 +47,7 @@ Shader "Custom RP/Unlit"
             //设置混合模式
             //Opaque物体的混合模式为Src=One、Dst=Zero，即新颜色会完全覆盖旧颜色，
             //而Transparent物体的混合模式为Src=SrcAlhpa、Dst=OneMinusSrcAlpha
-            Blend [_SrcBlend] [_DstBlend]
+            Blend [_SrcBlend] [_DstBlend], One OneMinusSrcAlpha
 
             //HLSLPROGRAM & ENDHLSL :it's possible put other non-HLSL code inside the Pass block
             HLSLPROGRAM

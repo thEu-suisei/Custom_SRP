@@ -1,7 +1,7 @@
 ﻿#ifndef CUSTOM_UNLIT_INPUT_INCLUDED
 #define CUSTOM_UNLIT_INPUT_INCLUDED
-//Meta Pass
 
+#define INPUT_PROP(name) UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, name)
 
 //在Shader的全局变量区定义纹理的句柄和其采样器，通过名字来匹配
 TEXTURE2D(_BaseMap);
@@ -15,6 +15,7 @@ UNITY_INSTANCING_BUFFER_START(UnityPerMaterial)
     UNITY_DEFINE_INSTANCED_PROP(float4, _BaseColor)
     //透明度测试阈值
     UNITY_DEFINE_INSTANCED_PROP(float, _Cutoff)
+	UNITY_DEFINE_INSTANCED_PROP(float, _ZWrite)
 UNITY_INSTANCING_BUFFER_END(UnityPerMaterial)
 
 struct InputConfig
@@ -22,6 +23,11 @@ struct InputConfig
     float2 baseUV;
     float2 detailUV;
 };
+
+float GetFinalAlpha(float alpha)
+{
+    return INPUT_PROP(_ZWrite) ? 1.0 : alpha;
+}
 
 InputConfig GetInputConfig(float2 baseUV, float2 detailUV = 0.0)
 {

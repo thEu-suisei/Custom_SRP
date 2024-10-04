@@ -153,8 +153,6 @@ float4 LitPassFragment(Varyings input) : SV_TARGET
     //Emission
     color += GetEmission(config);
 
-    return float4(color, surface.alpha);
-
     //UV可视化
     // return float4(input.baseUV,0,1);
 
@@ -165,6 +163,8 @@ float4 LitPassFragment(Varyings input) : SV_TARGET
     // base.rgb = abs(length(input.normalWS) - 1.0) * 10.0;
     // base.rgb = normalize(input.normalWS);
     // return float4(base.rgb, 1.0);
+    
+    return float4(color, GetFinalAlpha(surface.alpha));
 }
 
 

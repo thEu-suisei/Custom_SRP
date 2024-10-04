@@ -57,7 +57,7 @@ float4 UnlitPassFragment(Varyings input) : SV_TARGET
     //这里是根据我自己的clip理解修改的值
     base.a=UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial,_BaseColor).a;
     #endif
-    return base;
+    return float4(base.rgb, GetFinalAlpha(base.a));
 }
 
 #endif

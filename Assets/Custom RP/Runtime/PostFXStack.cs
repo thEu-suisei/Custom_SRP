@@ -27,13 +27,6 @@ public partial class PostFXStack
         ColorGradingNone
     }
 
-    private ScriptableRenderContext context;
-    private Camera camera;
-    private PostFXSettings settings;
-
-    private const int maxBloomPyramidLevels = 16;
-    private int bloomPyramidId;
-
     private int
         bloomBucibicUpsamplingId = Shader.PropertyToID("_BloomBicubicUpsampling"),
         bloomPrefilterId = Shader.PropertyToID("_BloomPrefilter"), //在第一次滤波采样一半分辨率，预滤波
@@ -58,9 +51,22 @@ public partial class PostFXStack
         colorGradingLUTParametersId = Shader.PropertyToID("_ColorGradingLUTParameters"),
         colorGradingLUTInLogId = Shader.PropertyToID("_ColorGradingLUTInLogC");
 
-    private bool useHDR;
+    private int
+        finalSrcBlendId = Shader.PropertyToID("_FinalSrcBlend"),
+        finalDstBlendId = Shader.PropertyToID("_FinalDstBlend");
 
-    int colorLUTResolution;
+    static Rect fullViewRect = new Rect(0f, 0f, 1f, 1f);
+
+    private ScriptableRenderContext context;
+    private Camera camera;
+    private PostFXSettings settings;
+    private CameraSettings.FinalBlendMode finalBlendMode;
+
+    private const int maxBloomPyramidLevels = 16;
+    private int bloomPyramidId;
+    private int colorLUTResolution;
+
+    private bool useHDR;
 
     public bool IsActive => settings != null;
 
@@ -74,20 +80,21 @@ public partial class PostFXStack
     }
 
     public void Setup(ScriptableRenderContext context, Camera camera, PostFXSettings settings, bool useHDR,
-        int colorLUTResolution)
+        int colorLUTResolution, CameraSettings.FinalBlendMode finalBlendMode)
     {
         this.context = context;
         this.camera = camera;
         this.settings = camera.cameraType <= CameraType.SceneView ? settings : null;
         this.useHDR = useHDR;
         this.colorLUTResolution = colorLUTResolution;
+        this.finalBlendMode = finalBlendMode;
         ApplySceneViewState();
     }
 
     /// <summary>
     /// 后处理绘制
     /// </summary>
-    /// <param name="from">源纹理</param>
+    /// <param name="from">源纹理将复制到_PostFXSource纹理中</param>
     /// <param name="to">目标纹理</param>
     /// <param name="pass">使用的Pass</param>
     void Draw(RenderTargetIdentifier from, RenderTargetIdentifier to, Pass pass)
@@ -98,6 +105,26 @@ public partial class PostFXStack
         buffer.SetRenderTarget(to, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store);
         //与Blit不同，使用一个三角形来覆盖裁剪空间进行复制
         buffer.DrawProcedural(Matrix4x4.identity, settings.Material, (int)pass, MeshTopology.Triangles, 3);
+    }
+
+    /// <summary>
+    /// 最终的绘制，将source应用LUT，并绘制到相机TargetTexture上
+    /// </summary>
+    /// <param name="from">源纹理</param>
+    /// <param name="to">目标纹理</param>
+    /// <param name="pass">使用的Pass</param>
+    void DrawFinal(RenderTargetIdentifier from)
+    {
+        buffer.SetGlobalFloat(finalSrcBlendId, (float)finalBlendMode.source);
+        buffer.SetGlobalFloat(finalDstBlendId, (float)finalBlendMode.destination);
+        buffer.SetGlobalTexture(fxSourceId, from);
+        buffer.SetRenderTarget(
+            BuiltinRenderTextureType.CameraTarget,
+            finalBlendMode.destination == BlendMode.Zero && camera.rect == fullViewRect ? RenderBufferLoadAction.DontCare : RenderBufferLoadAction.Load,
+            RenderBufferStoreAction.Store
+        );
+        buffer.SetViewport(camera.pixelRect);
+        buffer.DrawProcedural(Matrix4x4.identity, settings.Material, (int)Pass.Final, MeshTopology.Triangles, 3);
     }
 
     /// <summary>
@@ -280,16 +307,20 @@ public partial class PostFXStack
         //LUT
         int lutHeight = colorLUTResolution;
         int lutWidth = lutHeight * lutHeight;
-        buffer.GetTemporaryRT(colorGradingLUTId, lutWidth, lutHeight, 0, FilterMode.Bilinear, RenderTextureFormat.DefaultHDR);
-        buffer.SetGlobalVector(colorGradingLUTParametersId, new Vector4(lutHeight, 0.5f / lutWidth, 0.5f / lutHeight, lutHeight / (lutHeight - 1f)));
+        buffer.GetTemporaryRT(colorGradingLUTId, lutWidth, lutHeight, 0, FilterMode.Bilinear,
+            RenderTextureFormat.DefaultHDR);
+        buffer.SetGlobalVector(colorGradingLUTParametersId,
+            new Vector4(lutHeight, 0.5f / lutWidth, 0.5f / lutHeight, lutHeight / (lutHeight - 1f)));
 
         ToneMappingSettings.Mode mode = settings.ToneMapping.mode;
         Pass pass = Pass.ColorGradingNone + (int)mode;
         buffer.SetGlobalFloat(colorGradingLUTInLogId, useHDR && pass != Pass.ColorGradingNone ? 1f : 0f);
-        Draw(sourceId, colorGradingLUTId, pass);//虽然构建LUT矩阵不需要使用原来的纹理，但这里还是需要传递source参数
+
+        //Color Grading 和 设置负责ToneMapping的LUT矩阵
+        Draw(sourceId, colorGradingLUTId, pass); //虽然构建LUT矩阵不需要使用原来的纹理，但这里还是需要传递source参数
 
         buffer.SetGlobalVector(colorGradingLUTParametersId, new Vector4(1f / lutWidth, 1f / lutHeight, lutHeight - 1f));
-        Draw(sourceId, BuiltinRenderTextureType.CameraTarget, Pass.Final);
+        DrawFinal(sourceId);
         buffer.ReleaseTemporaryRT(colorGradingLUTId);
     }
 }

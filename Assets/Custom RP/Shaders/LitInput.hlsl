@@ -29,6 +29,7 @@ UNITY_INSTANCING_BUFFER_START(UnityPerMaterial)
     UNITY_DEFINE_INSTANCED_PROP(float, _DetailSmoothness)
     UNITY_DEFINE_INSTANCED_PROP(float, _DetailNormalScale)
     UNITY_DEFINE_INSTANCED_PROP(float, _NormalScale)
+    UNITY_DEFINE_INSTANCED_PROP(float, _ZWrite)
 UNITY_INSTANCING_BUFFER_END(UnityPerMaterial)
 
 struct InputConfig
@@ -38,6 +39,11 @@ struct InputConfig
     bool useMask;
     bool useDetail;
 };
+
+float GetFinalAlpha(float alpha)
+{
+    return INPUT_PROP(_ZWrite) ? 1.0 : alpha;
+}
 
 InputConfig GetInputConfig(float2 baseUV, float2 detailUV = 0.0)
 {
@@ -80,7 +86,7 @@ float3 GetNormalTS(InputConfig c)
     float4 map = SAMPLE_TEXTURE2D(_NormalMap, sampler_BaseMap, c.baseUV);
     float scale = INPUT_PROP(_NormalScale);
     float3 normal = DecodeNormal(map, scale);
-    
+
     //细节法线贴图
     if (c.useDetail)
     {
@@ -90,7 +96,7 @@ float3 GetNormalTS(InputConfig c)
         //BlendNormalRNM围绕基础法线旋转细节法线
         normal = BlendNormalRNM(normal, detail);
     }
-    
+
     return normal;
 }
 
